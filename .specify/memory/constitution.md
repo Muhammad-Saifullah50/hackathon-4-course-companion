@@ -1,55 +1,105 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Course Companion FTE — Project Constitution
 
-## Core Principles
+## I. Architecture Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### Zero-Backend-LLM by Default
+Phase 1 backend performs **zero LLM inference**. The backend is deterministic: it serves content, grades quizzes against an answer key, tracks progress, and enforces access control. ChatGPT (via OpenAI Apps SDK/MCP) does all reasoning, explanation, tutoring, and adaptation.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Why: Near-zero marginal cost per user. Predictable scaling. A backend LLM call in Phase 1 is an **immediate disqualifier** from the hackathon.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### Hybrid Intelligence Is Selective and Premium
+Phase 2 LLM routes are:
+- Isolated on separate API paths (`/premium/...`)
+- Gated behind paid-tier access checks
+- User-initiated only (never auto-triggered)
+- Limited to a maximum of 2 hybrid features
+- Cost-tracked per user
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Why: Hybrid power without hybrid costs for the default user path.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### Single Backend, Separate Frontend Codebases
+One FastAPI backend serves all phases. The ChatGPT app and the Next.js web app are separate frontend codebases that both call the same backend. No logic duplication between frontends.
 
-### [PRINCIPLE_6_NAME]
+### Content Lives in Cloudflare R2
+All course chapters, media, and quiz banks are stored in and served from Cloudflare R2. The backend fetches content from R2 — it does not embed content in code or database rows.
 
+Why: R2 is required by the hackathon spec and enables content updates without redeployment.
 
-[PRINCIPLE__DESCRIPTION]
+### Repository Layer for All Data Access
+All database reads and writes go through a service/repository layer. No direct database queries in route handlers.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+---
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+## II. Technology Constraints
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+| Layer | Technology | Notes |
+|-------|-----------|-------|
+| Backend language | Python 3.12+ | Strict type checking | UV package managewr
+| API framework | FastAPI | Auto-generates OpenAPI docs |
+| Data validation | Pydantic v2 | All request/response models |
+| Content storage | Cloudflare R2 | **Required** — no substitutes |
+| Database | Neon (PostgreSQL) | User progress, streaks, access tiers |
+| ChatGPT frontend | OpenAI Apps SDK (MCP) | Phase 1 & 2 |
+| Web frontend | Next.js / React | Phase 3 only |
+| LLM for hybrid features | Nvidia Nemotron (via openrouter) | Phase 2 only, never Phase 1 |
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+No LLM SDK (`anthropic`, `openai`, `langchain`, etc.) may be imported in any Phase 1 backend module. If the import exists, the code fails the Phase 1 audit.
+
+---
+
+## III. Code Quality Standards
+
+- All Python functions have type hints on parameters and return values — no `Any`
+- All API request/response shapes are Pydantic models
+- No function longer than 50 lines — extract helpers
+- Tests written before or alongside implementation (TDD where practical)
+- Minimum 80% test coverage on business logic
+- OpenAPI docs auto-generated via FastAPI — never written by hand
+- No raw SQL in application code — use SQLAlchemy ORM or parameterized queries in migrations only
+- Environment variables loaded via `pydantic-settings` — never `os.getenv` scattered through code
+
+---
+
+## IV. Security Requirements
+
+- No secrets, API keys, or credentials in any committed file — environment variables only
+- `.env` files listed in `.gitignore` before first commit
+- All API endpoints validate input at the boundary via Pydantic — no manual string parsing
+- Freemium access control checked server-side on every gated endpoint — never trust the client
+- JWT or session tokens never logged — only request metadata
+- R2 bucket access via signed URLs or scoped service credentials — never public bucket URLs in production
+
+---
+
+## V. Phase-Specific Constraints
+
+### Phase 1 (STRICT — Disqualifier)
+The following are **absolutely forbidden** in the backend during Phase 1:
+- Any import of LLM libraries (`anthropic`, `openai`, `langchain`, `litellm`, etc.)
+- Any HTTP call to an LLM API endpoint
+- Any summarization, RAG, prompt orchestration, or agent loop logic
+- Any content generation at request time (pre-generate only)
+
+Detection: Code review + API traffic audit. Violation = immediate disqualification from Phase 1.
+
+### Phase 2 (Gated)
+Hybrid features must be on routes prefixed `/premium/` and guarded by a `require_premium` dependency. The Phase 1 deterministic routes remain untouched.
+
+---
+
+## VI. Workflow Rules
+
+- SDD sequence: Constitution → Spec → Plan → Tasks → Implementation
+- Create a PHR (Prompt History Record) after every significant user prompt
+- Propose ADR when a significant architectural decision is made — never auto-create, wait for user consent
+- When a spec is ambiguous, ask one clarifying question before proceeding
+- Never update the constitution mid-task — finish the current task under existing rules, then amend
+- Commit after each completed task: `type(scope): description` format
+
+---
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other practices for this project. Any proposal to violate a Phase 1 constraint must be explicitly flagged as a potential disqualifier before proceeding. Amendments require user consent and are recorded in `history/adr/`.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-06-02 | **Course**: AI Agent Development
