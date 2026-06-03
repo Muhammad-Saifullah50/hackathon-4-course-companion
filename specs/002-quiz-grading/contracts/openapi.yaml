@@ -1,0 +1,236 @@
+openapi: "3.1.0"
+info:
+  title: Quiz Grading API
+  version: "1.0.0"
+  description: >
+    Rule-based MCQ quiz endpoints. Questions are served from Cloudflare R2.
+    Grading is deterministic and stateless — no data is written to the database.
+    No LLM calls are made in any of these endpoints.
+
+paths:
+  /quizzes/{chapter_slug}:
+    get:
+      operationId: get_quiz
+      summary: Get quiz questions for a chapter
+      description: >
+        Returns the list of MCQ questions for the given chapter.
+        The correct answer and explanation are NOT included in the response.
+      tags: [quizzes]
+      parameters:
+        - name: chapter_slug
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: URL-safe chapter identifier (e.g. "mcp-introduction")
+      responses:
+        "200":
+          description: Quiz questions returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizPublic"
+              example:
+                chapter_slug: mcp-introduction
+                questions:
+                  - id: q1
+                    text: What does MCP stand for?
+                    options:
+                      - label: A
+                        text: Model Context Protocol
+                      - label: B
+                        text: Multi-Channel Processing
+                      - label: C
+                        text: Machine Control Pipeline
+                      - label: D
+                        text: Managed Compute Platform
+        "400":
+          description: Invalid chapter slug (empty or malformed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDetail"
+        "404":
+          description: No quiz found for this chapter slug
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDetail"
+              example:
+                detail: "Quiz not found for chapter: unknown-slug"
+        "503":
+          description: R2 content store unavailable or quiz file is malformed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDetail"
+
+  /quizzes/{chapter_slug}/submit:
+    post:
+      operationId: submit_answer
+      summary: Submit a single answer and receive immediate feedback
+      description: >
+        Accepts one answer for one question. Returns whether the answer was
+        correct, the correct answer, and the pre-written explanation.
+        Stateless — nothing is persisted.
+      tags: [quizzes]
+      parameters:
+        - name: chapter_slug
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: URL-safe chapter identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnswerSubmission"
+            example:
+              question_id: q1
+              selected_answer: A
+      responses:
+        "200":
+          description: Answer graded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GradedResult"
+              examples:
+                correct:
+                  summary: Correct answer
+                  value:
+                    question_id: q1
+                    is_correct: true
+                    correct_answer: A
+                    explanation: >
+                      MCP stands for Model Context Protocol, the open standard
+                      for connecting AI models to external tools and data sources.
+                incorrect:
+                  summary: Incorrect answer
+                  value:
+                    question_id: q1
+                    is_correct: false
+                    correct_answer: A
+                    explanation: >
+                      MCP stands for Model Context Protocol, the open standard
+                      for connecting AI models to external tools and data sources.
+        "400":
+          description: >
+            Invalid request — empty slug, missing fields, or question_id not
+            found in this quiz
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDetail"
+              example:
+                detail: "Question 'q99' not found in quiz for chapter: mcp-introduction"
+        "404":
+          description: No quiz found for this chapter slug
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDetail"
+        "503":
+          description: R2 content store unavailable or quiz file is malformed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDetail"
+
+components:
+  schemas:
+
+    AnswerOption:
+      type: object
+      required: [label, text]
+      properties:
+        label:
+          type: string
+          minLength: 1
+          description: Single-character identifier, e.g. "A", "B"
+          example: A
+        text:
+          type: string
+          minLength: 1
+          description: The displayed answer text
+          example: Model Context Protocol
+
+    QuestionPublic:
+      type: object
+      required: [id, text, options]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: Stable question identifier
+          example: q1
+        text:
+          type: string
+          minLength: 1
+          description: The question body
+          example: What does MCP stand for?
+        options:
+          type: array
+          minItems: 2
+          items:
+            $ref: "#/components/schemas/AnswerOption"
+
+    QuizPublic:
+      type: object
+      required: [chapter_slug, questions]
+      properties:
+        chapter_slug:
+          type: string
+          minLength: 1
+          example: mcp-introduction
+        questions:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/QuestionPublic"
+
+    AnswerSubmission:
+      type: object
+      required: [question_id, selected_answer]
+      properties:
+        question_id:
+          type: string
+          minLength: 1
+          description: Must match a question id in the quiz
+          example: q1
+        selected_answer:
+          type: string
+          minLength: 1
+          description: The option label selected by the learner
+          example: A
+
+    GradedResult:
+      type: object
+      required: [question_id, is_correct, correct_answer, explanation]
+      properties:
+        question_id:
+          type: string
+          example: q1
+        is_correct:
+          type: boolean
+          example: true
+        correct_answer:
+          type: string
+          description: The correct option label
+          example: A
+        explanation:
+          type: string
+          description: Pre-written explanation revealed after grading
+          example: MCP stands for Model Context Protocol...
+
+    ErrorDetail:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message

@@ -1,0 +1,65 @@
+{
+  "chapter_slug": "claude-agent-sdk-advanced",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "What is 'computer use' in the context of the Claude Agent SDK?",
+      "options": [
+        { "label": "A", "text": "A feature that lets Claude write Python scripts for computation" },
+        { "label": "B", "text": "A capability allowing Claude to interact with a desktop GUI by taking screenshots and simulating mouse/keyboard input" },
+        { "label": "C", "text": "An API for accessing cloud computing resources" },
+        { "label": "D", "text": "A tool for monitoring CPU and memory usage" }
+      ],
+      "correct_answer": "B",
+      "explanation": "Computer use is a Claude capability that allows it to interact with a desktop environment — taking screenshots to perceive the screen state and simulating mouse clicks and keyboard input to control applications."
+    },
+    {
+      "id": "q2",
+      "text": "How can you implement multi-agent workflows with the Claude Agent SDK?",
+      "options": [
+        { "label": "A", "text": "By running multiple Claude processes on separate machines" },
+        { "label": "B", "text": "By using one Claude agent as an orchestrator that calls other specialized agents as tools" },
+        { "label": "C", "text": "Multi-agent workflows are not supported" },
+        { "label": "D", "text": "By using threading to run agents in parallel without coordination" }
+      ],
+      "correct_answer": "B",
+      "explanation": "Multi-agent workflows can be built by having an orchestrator agent that delegates subtasks to specialized subagents by calling them as tools. The orchestrator receives results from subagents and coordinates the overall task."
+    },
+    {
+      "id": "q3",
+      "text": "What is the purpose of streaming in the Claude Agent SDK?",
+      "options": [
+        { "label": "A", "text": "To stream video content to users" },
+        { "label": "B", "text": "To reduce API costs by sending smaller payloads" },
+        { "label": "C", "text": "To progressively deliver Claude's response tokens as they are generated, improving perceived latency" },
+        { "label": "D", "text": "To compress the model's output for faster transmission" }
+      ],
+      "correct_answer": "C",
+      "explanation": "Streaming allows you to receive Claude's response incrementally as tokens are generated rather than waiting for the full response. This significantly improves perceived latency in interactive applications."
+    },
+    {
+      "id": "q4",
+      "text": "What is 'prompt caching' in the Claude Agent SDK and what does it optimize?",
+      "options": [
+        { "label": "A", "text": "Caching the final answer so identical questions are answered without calling the API" },
+        { "label": "B", "text": "Storing reusable prefix portions of the prompt on Anthropic's servers to reduce token processing costs on repeated calls" },
+        { "label": "C", "text": "Saving user prompts to a local database for offline use" },
+        { "label": "D", "text": "Compressing the prompt to reduce its token count" }
+      ],
+      "correct_answer": "B",
+      "explanation": "Prompt caching allows you to mark stable portions of your prompt (like a large system prompt or documents) with cache_control. Anthropic stores these on their servers so subsequent calls with the same prefix don't reprocess those tokens, reducing cost and latency."
+    },
+    {
+      "id": "q5",
+      "text": "In an advanced Claude agent, what is the recommended strategy for handling tool execution errors?",
+      "options": [
+        { "label": "A", "text": "Crash the agent immediately on any tool error" },
+        { "label": "B", "text": "Silently ignore all tool errors" },
+        { "label": "C", "text": "Return the error as a tool_result so Claude can reason about the failure and try an alternative approach" },
+        { "label": "D", "text": "Automatically retry the tool 10 times before giving up" }
+      ],
+      "correct_answer": "C",
+      "explanation": "The recommended pattern is to return error information back to Claude as a tool_result. This lets Claude understand what went wrong and reason about alternative approaches, retry with different parameters, or inform the user appropriately."
+    }
+  ]
+}

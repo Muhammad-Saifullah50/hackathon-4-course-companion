@@ -1,0 +1,65 @@
+{
+  "chapter_slug": "agent-skills",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "What is an Agent Skill in the context of the Claude Agent SDK?",
+      "options": [
+        { "label": "A", "text": "A Python class that inherits from BaseSkill" },
+        { "label": "B", "text": "A reusable, composable unit of agent behavior defined in a SKILL.md file that instructs Claude how to handle a specific type of task" },
+        { "label": "C", "text": "A machine learning model fine-tuned for a specific domain" },
+        { "label": "D", "text": "A collection of API endpoints grouped by functionality" }
+      ],
+      "correct_answer": "B",
+      "explanation": "An Agent Skill is a reusable behavior unit defined in a SKILL.md file. It provides structured instructions to Claude about how to approach a specific type of task, what tools to use, and how to respond — making agent behavior modular and composable."
+    },
+    {
+      "id": "q2",
+      "text": "What format is used to define an Agent Skill?",
+      "options": [
+        { "label": "A", "text": "YAML configuration file" },
+        { "label": "B", "text": "JSON schema file" },
+        { "label": "C", "text": "Markdown file (SKILL.md) with structured frontmatter and instruction body" },
+        { "label": "D", "text": "Python class with decorators" }
+      ],
+      "correct_answer": "C",
+      "explanation": "Agent Skills are defined as Markdown files (typically named SKILL.md) with YAML frontmatter specifying metadata (name, description, triggers) and a Markdown body providing detailed instructions for how Claude should execute the skill."
+    },
+    {
+      "id": "q3",
+      "text": "What is the advantage of composing multiple skills in an agent system?",
+      "options": [
+        { "label": "A", "text": "It reduces the number of API calls needed" },
+        { "label": "B", "text": "It allows complex behaviors to be built from focused, tested, reusable components rather than one monolithic prompt" },
+        { "label": "C", "text": "It automatically parallelizes all agent tasks" },
+        { "label": "D", "text": "It eliminates the need for a system prompt" }
+      ],
+      "correct_answer": "B",
+      "explanation": "Composing skills allows you to build complex agent behaviors by combining focused, well-tested skill components. Each skill handles one concern well, and they can be mixed and matched across different agents — improving maintainability and reliability."
+    },
+    {
+      "id": "q4",
+      "text": "How does an agent decide which skill to invoke for a given user request?",
+      "options": [
+        { "label": "A", "text": "Skills are invoked based on a hardcoded keyword list" },
+        { "label": "B", "text": "A separate classifier model picks the skill" },
+        { "label": "C", "text": "Claude reasons about the user's request and selects the appropriate skill based on skill descriptions and trigger conditions defined in the skill files" },
+        { "label": "D", "text": "Skills are invoked in alphabetical order" }
+      ],
+      "correct_answer": "C",
+      "explanation": "Claude uses its reasoning capabilities to match the user's intent against the skill descriptions and trigger conditions. The skill's frontmatter description and body instructions guide Claude's decision about which skill applies and how to execute it."
+    },
+    {
+      "id": "q5",
+      "text": "What should a well-written Agent Skill's instruction body include?",
+      "options": [
+        { "label": "A", "text": "Only the name and version of the skill" },
+        { "label": "B", "text": "Step-by-step instructions, decision rules, tool usage guidance, and output format expectations specific to the skill's task domain" },
+        { "label": "C", "text": "Only a list of tools to call in sequence" },
+        { "label": "D", "text": "Authentication credentials for external services" }
+      ],
+      "correct_answer": "B",
+      "explanation": "A well-written skill body provides comprehensive guidance: step-by-step instructions for the task, decision rules for edge cases, which tools to use and when, how to handle errors, and what format the output should take — making Claude's behavior predictable and reliable."
+    }
+  ]
+}

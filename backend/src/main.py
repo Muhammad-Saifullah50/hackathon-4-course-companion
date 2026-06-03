@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from src.core.dependencies import get_content_service
 from src.routers import content
+from src.routers import quizzes
 from src.services.content import ServiceUnavailableError
 
 
@@ -24,6 +25,7 @@ app = FastAPI(
 )
 
 app.include_router(content.router, prefix="/chapters", tags=["content"])
+app.include_router(quizzes.router, prefix="/quizzes", tags=["quizzes"])
 
 
 @app.exception_handler(ServiceUnavailableError)

@@ -1,0 +1,65 @@
+{
+  "chapter_slug": "claude-agent-sdk-foundations",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "What is the primary purpose of the Claude Agent SDK?",
+      "options": [
+        { "label": "A", "text": "To fine-tune Claude models on custom datasets" },
+        { "label": "B", "text": "To build agentic applications that can use tools and take multi-step actions" },
+        { "label": "C", "text": "To deploy Claude models to production servers" },
+        { "label": "D", "text": "To compress and optimize Claude model weights" }
+      ],
+      "correct_answer": "B",
+      "explanation": "The Claude Agent SDK is designed to build agentic applications where Claude can use tools, execute multi-step plans, and interact with external systems to accomplish complex tasks."
+    },
+    {
+      "id": "q2",
+      "text": "Which class in the Claude Agent SDK is used to define a tool that Claude can invoke?",
+      "options": [
+        { "label": "A", "text": "ClaudeTool" },
+        { "label": "B", "text": "BaseTool" },
+        { "label": "C", "text": "Tool" },
+        { "label": "D", "text": "AgentTool" }
+      ],
+      "correct_answer": "C",
+      "explanation": "The Tool class (from the Anthropic SDK) is used to define tools that Claude can call. Each Tool has a name, description, and input schema that Claude uses to understand how and when to invoke it."
+    },
+    {
+      "id": "q3",
+      "text": "What does 'agentic loop' mean in the context of the Claude Agent SDK?",
+      "options": [
+        { "label": "A", "text": "A recursive function that calls itself indefinitely" },
+        { "label": "B", "text": "An infinite loop for monitoring server health" },
+        { "label": "C", "text": "The cycle of Claude reasoning, selecting a tool, executing it, observing results, and repeating until the goal is reached" },
+        { "label": "D", "text": "A loop that retries failed API requests" }
+      ],
+      "correct_answer": "C",
+      "explanation": "The agentic loop is the core execution pattern: Claude receives a task, reasons about which tool to use, the SDK executes the tool, the result is fed back to Claude, and the cycle repeats until Claude determines the task is complete."
+    },
+    {
+      "id": "q4",
+      "text": "How does the Claude Agent SDK handle tool execution results?",
+      "options": [
+        { "label": "A", "text": "Results are emailed to the developer" },
+        { "label": "B", "text": "Results are returned as tool_result content blocks to Claude in the next turn" },
+        { "label": "C", "text": "Results are stored in a database and fetched later" },
+        { "label": "D", "text": "Results are discarded and only the final answer matters" }
+      ],
+      "correct_answer": "B",
+      "explanation": "After a tool is executed, the SDK passes the result back to Claude as a tool_result content block in the conversation. This allows Claude to observe the outcome and decide what to do next."
+    },
+    {
+      "id": "q5",
+      "text": "What is the role of the system prompt when building an agent with the Claude Agent SDK?",
+      "options": [
+        { "label": "A", "text": "It sets the model temperature for inference" },
+        { "label": "B", "text": "It defines Claude's persona, capabilities, and constraints for the agent" },
+        { "label": "C", "text": "It specifies the maximum number of tokens to generate" },
+        { "label": "D", "text": "It authenticates the API request" }
+      ],
+      "correct_answer": "B",
+      "explanation": "The system prompt defines the agent's behavior — its persona, what tools it has, how it should approach tasks, and any operational constraints. A well-crafted system prompt is critical to reliable agent behavior."
+    }
+  ]
+}

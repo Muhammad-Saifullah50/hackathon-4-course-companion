@@ -22,3 +22,10 @@ See @.specify/memory/constitution.md for the project constitution — the immuta
 ## Code Standards
 
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Active Technologies
+- Python 3.12 + FastAPI, Pydantic v2, boto3 (S3-compatible R2 client), pytest (002-quiz-grading)
+- Cloudflare R2 for quiz JSON files — no DB writes for this feature (002-quiz-grading)
+
+## Recent Changes
+- 002-quiz-grading: Added Python 3.12 + FastAPI, Pydantic v2, boto3 (S3-compatible R2 client), pytest

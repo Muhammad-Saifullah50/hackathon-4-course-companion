@@ -1,0 +1,65 @@
+{
+  "chapter_slug": "mcp-introduction",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "What does MCP stand for?",
+      "options": [
+        { "label": "A", "text": "Model Context Protocol" },
+        { "label": "B", "text": "Multi-Channel Processing" },
+        { "label": "C", "text": "Machine Control Pipeline" },
+        { "label": "D", "text": "Managed Compute Platform" }
+      ],
+      "correct_answer": "A",
+      "explanation": "MCP stands for Model Context Protocol, the open standard for connecting AI models to external tools and data sources."
+    },
+    {
+      "id": "q2",
+      "text": "Which transport mechanisms does MCP support for client-server communication?",
+      "options": [
+        { "label": "A", "text": "WebSockets only" },
+        { "label": "B", "text": "stdio and HTTP with SSE" },
+        { "label": "C", "text": "gRPC only" },
+        { "label": "D", "text": "Raw TCP sockets" }
+      ],
+      "correct_answer": "B",
+      "explanation": "MCP supports two transport mechanisms: stdio (standard input/output) for local processes and HTTP with Server-Sent Events (SSE) for remote servers."
+    },
+    {
+      "id": "q3",
+      "text": "What is the role of an MCP client?",
+      "options": [
+        { "label": "A", "text": "It stores the AI model weights" },
+        { "label": "B", "text": "It connects to MCP servers, discovers their capabilities, and forwards tool calls on behalf of the AI model" },
+        { "label": "C", "text": "It trains the AI model on new data" },
+        { "label": "D", "text": "It manages user authentication" }
+      ],
+      "correct_answer": "B",
+      "explanation": "An MCP client (such as Claude Desktop or a custom application) connects to MCP servers, queries them for their available tools and resources, and acts as an intermediary between the AI model and the external capabilities the servers provide."
+    },
+    {
+      "id": "q4",
+      "text": "Which organization created and maintains the MCP open standard?",
+      "options": [
+        { "label": "A", "text": "OpenAI" },
+        { "label": "B", "text": "Google DeepMind" },
+        { "label": "C", "text": "Anthropic" },
+        { "label": "D", "text": "Meta AI" }
+      ],
+      "correct_answer": "C",
+      "explanation": "MCP was created and open-sourced by Anthropic. It is designed as an open standard to enable any AI model to connect to any external tool or data source through a common protocol."
+    },
+    {
+      "id": "q5",
+      "text": "What problem does MCP solve for AI application developers?",
+      "options": [
+        { "label": "A", "text": "It automatically generates training data for models" },
+        { "label": "B", "text": "It eliminates the need to write custom integration code for every tool-model combination by providing a standard protocol" },
+        { "label": "C", "text": "It reduces the cost of LLM inference" },
+        { "label": "D", "text": "It encrypts all communication between the model and tools" }
+      ],
+      "correct_answer": "B",
+      "explanation": "Without MCP, developers must write bespoke integration code for every combination of AI model and external tool. MCP standardizes how models discover and call tools, so an MCP server built once works with any MCP-compatible client."
+    }
+  ]
+}

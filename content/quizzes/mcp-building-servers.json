@@ -1,0 +1,65 @@
+{
+  "chapter_slug": "mcp-building-servers",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "What are the three primitive types that an MCP server can expose?",
+      "options": [
+        { "label": "A", "text": "Tools, Resources, and Prompts" },
+        { "label": "B", "text": "Functions, Files, and Templates" },
+        { "label": "C", "text": "Actions, Data, and Messages" },
+        { "label": "D", "text": "Endpoints, Schemas, and Handlers" }
+      ],
+      "correct_answer": "A",
+      "explanation": "MCP servers expose three primitive types: Tools (executable functions Claude can call), Resources (data sources Claude can read), and Prompts (reusable prompt templates). Each primitive serves a different purpose in the agent's context."
+    },
+    {
+      "id": "q2",
+      "text": "When building an MCP server in Python, which class do you subclass to create a server?",
+      "options": [
+        { "label": "A", "text": "MCPServer" },
+        { "label": "B", "text": "Server from the mcp library" },
+        { "label": "C", "text": "FastMCP" },
+        { "label": "D", "text": "BaseServer" }
+      ],
+      "correct_answer": "C",
+      "explanation": "FastMCP is the recommended high-level class from the mcp Python library for building MCP servers. It provides decorators like @mcp.tool() and @mcp.resource() that make it simple to expose functionality."
+    },
+    {
+      "id": "q3",
+      "text": "What is the difference between an MCP Tool and an MCP Resource?",
+      "options": [
+        { "label": "A", "text": "Tools run on the client side; Resources run on the server side" },
+        { "label": "B", "text": "Tools perform actions or computations with side effects; Resources provide read-only data access" },
+        { "label": "C", "text": "Tools are for text data; Resources are for binary data" },
+        { "label": "D", "text": "There is no meaningful difference; they are interchangeable" }
+      ],
+      "correct_answer": "B",
+      "explanation": "MCP Tools are for actions and computations that may have side effects (like sending an email or writing a file). MCP Resources are for read-only data access (like reading a file or querying a database without modifying it)."
+    },
+    {
+      "id": "q4",
+      "text": "How does an MCP server communicate with an MCP client when using the stdio transport?",
+      "options": [
+        { "label": "A", "text": "Via a REST API over HTTP" },
+        { "label": "B", "text": "Via shared memory between processes" },
+        { "label": "C", "text": "Via JSON-RPC messages over standard input and standard output" },
+        { "label": "D", "text": "Via WebSocket connections" }
+      ],
+      "correct_answer": "C",
+      "explanation": "With the stdio transport, the MCP client launches the server as a subprocess. Communication happens via JSON-RPC 2.0 messages written to and read from the process's stdin/stdout streams."
+    },
+    {
+      "id": "q5",
+      "text": "What must the input schema of an MCP tool define?",
+      "options": [
+        { "label": "A", "text": "The programming language used to implement the tool" },
+        { "label": "B", "text": "The expected input parameters as a JSON Schema object so Claude knows how to call the tool correctly" },
+        { "label": "C", "text": "The maximum execution time allowed for the tool" },
+        { "label": "D", "text": "The authentication credentials needed to invoke the tool" }
+      ],
+      "correct_answer": "B",
+      "explanation": "Every MCP tool must declare its input schema as a JSON Schema object. This schema tells the MCP client (and Claude) exactly what parameters to pass, their types, and which are required — enabling Claude to call the tool with valid arguments."
+    }
+  ]
+}
