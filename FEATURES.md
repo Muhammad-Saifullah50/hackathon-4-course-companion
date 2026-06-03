@@ -35,11 +35,19 @@
 - Server-side enforcement on every gated endpoint — never trust the client
 - Router: `backend/src/routers/access.py`
 
-### 6. ChatGPT App Skills (no backend — SKILL.md files only)
+### 6. ChatGPT App (OpenAI Apps SDK / MCP Server)
+- MCP server that exposes backend API as tools ChatGPT can call
+- Tool definitions: `get_chapter`, `list_chapters`, `submit_quiz`, `get_progress`, `search_content`, `check_access`
+- `manifest.yaml` — ChatGPT app definition (name, description, auth, tool endpoints)
+- Connects ChatGPT to the deterministic backend with zero backend LLM calls
+- Location: `chatgpt-app/`
+
+### 7. ChatGPT App Skills (behavior files — no backend)
 - `concept-explainer.md` — how ChatGPT explains AI Agent concepts
 - `quiz-master.md` — how ChatGPT conducts quizzes using backend data
 - `socratic-tutor.md` — Socratic Q&A tutoring behavior
 - `progress-motivator.md` — motivational responses based on progress
+- Location: `chatgpt-app/skills/`
 
 ---
 
@@ -52,7 +60,8 @@
 | 3 | Rule-Based Quiz Grading | Needs content to exist first |
 | 4 | Progress Tracking & Streaks | Requires quiz + content endpoints to be stable |
 | 5 | Keyword Search | Add-on; no hard dependencies |
-| 6 | ChatGPT App Skills | Wire up after backend is functional |
+| 6 | ChatGPT App (MCP Server) | Wire up after all backend endpoints are stable |
+| 7 | ChatGPT App Skills | Add behavior files alongside the MCP server |
 
 ---
 

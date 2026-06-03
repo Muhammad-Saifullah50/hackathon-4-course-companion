@@ -103,6 +103,7 @@ alembic revision --autogenerate -m "description"
 
 ### Python (Backend)
 - Python 3.12+, strict type hints on all functions — no `Any`
+- UV Package manager
 - Pydantic v2 models for all request/response shapes
 - SQLAlchemy 2.0 ORM — no raw SQL in application code
 - Functions under 50 lines — extract helpers
@@ -115,6 +116,9 @@ alembic revision --autogenerate -m "description"
 - React Server Components by default, Client Components only when interactivity needed
 - Tailwind CSS + shadcn/ui for UI
 - No inline styles
+
+### ChatGPT App
+- Apps SDK UI for UI components
 
 ### API Design
 - RESTful routes following the patterns in `backend/app/routers/`

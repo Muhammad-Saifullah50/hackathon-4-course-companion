@@ -1,0 +1,29 @@
+{
+  "chapters": [
+    {
+      "slug": "claude-agent-sdk-foundations",
+      "title": "Claude Agent SDK Foundations",
+      "order": 1
+    },
+    {
+      "slug": "claude-agent-sdk-advanced",
+      "title": "Claude Agent SDK Advanced",
+      "order": 2
+    },
+    {
+      "slug": "mcp-introduction",
+      "title": "MCP Introduction",
+      "order": 3
+    },
+    {
+      "slug": "mcp-building-servers",
+      "title": "MCP Building Servers",
+      "order": 4
+    },
+    {
+      "slug": "agent-skills",
+      "title": "Agent Skills",
+      "order": 5
+    }
+  ]
+}

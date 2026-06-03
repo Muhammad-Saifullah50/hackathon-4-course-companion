@@ -74,10 +74,22 @@ A chapter references an embedded image or diagram. The system provides a short-l
 
 ### Edge Cases
 
-- What happens when the manifest exists but lists a slug whose `.md` file is missing in R2?
-- What happens when the manifest JSON is malformed?
+- When the manifest lists a slug whose `.md` file is missing in R2 → return 404 Not Found (same as unknown slug).
+- When the manifest JSON is malformed or fails schema validation → fail fast at first load, log the error, return 503 on all content requests until resolved.
 - How does the system handle a chapter with no media assets when a media URL is requested?
-- What if two chapters have the same slug in the manifest?
+- When two chapters have the same slug in the manifest → use first occurrence, log a warning; service remains operational.
+
+---
+
+## Clarifications
+
+### Session 2026-06-03
+
+- Q: Are content delivery endpoints (list chapters, get chapter, navigation, media URLs) public or do they require authentication? → A: Public — no authentication required; freemium access gating is handled by the separate `access.py` router.
+- Q: Should the service cache manifest and chapter content to meet the 2-second performance target, or fetch from R2 on every request? → A: In-memory cache with configurable TTL (default 5 minutes) for both manifest and chapter bodies.
+- Q: What should the service return when a slug is in the manifest but its `.md` file is missing in R2? → A: 404 Not Found — treat missing file the same as unknown slug; manifest/file inconsistency is an internal data issue, not a server fault.
+- Q: What should happen when the manifest JSON is malformed or fails schema validation? → A: Fail fast — raise an error at first load (startup or first cache fill), log clearly, return 503 on all content requests until the manifest is fixed.
+- Q: What should happen when the manifest contains duplicate slugs? → A: Use the first occurrence and log a warning — service remains operational; duplicate is a data quality issue, not a fatal fault.
 
 ---
 
@@ -90,11 +102,13 @@ A chapter references an embedded image or diagram. The system provides a short-l
 - **FR-003**: System MUST include next and previous chapter slugs in every chapter response, with null values at course boundaries.
 - **FR-004**: System MUST provide dedicated next and previous navigation endpoints that return only the adjacent chapter slug.
 - **FR-005**: System MUST generate short-lived signed access URLs for media assets stored alongside chapter content.
-- **FR-006**: System MUST return a not-found response when a requested slug is not present in the manifest.
-- **FR-007**: System MUST return a service-unavailable response when the content storage layer is unreachable.
+- **FR-006**: System MUST return a 404 Not Found response when a requested slug is not present in the manifest, or when the slug is in the manifest but its `.md` file is missing in R2.
+- **FR-007**: System MUST return a 503 Service Unavailable response when the content storage layer is unreachable or when the manifest is malformed/fails schema validation. The manifest MUST be validated (via Pydantic) at first load; a validation failure is logged and all content endpoints return 503 until the cache is successfully refreshed.
 - **FR-008**: System MUST serve 5 chapters authored from official documentation: 2 covering the Claude Agent SDK, 2 covering the Model Context Protocol, and 1 covering Agent Skills.
 - **FR-009**: Each chapter MUST follow a consistent structure: Introduction, Core Concepts, Code Examples, and Key Takeaways.
-- **FR-010**: Chapter ordering and navigation MUST be driven solely by the manifest — no database involvement for content metadata.
+- **FR-010**: Chapter ordering and navigation MUST be driven solely by the manifest — no database involvement for content metadata. When duplicate slugs are present, the first occurrence takes precedence and a warning is logged.
+- **FR-011**: All content delivery endpoints (list chapters, get chapter, navigation, media URLs) are publicly accessible — no authentication or session token required. Freemium access control is enforced by the `access.py` router, not here.
+- **FR-012**: The content service MUST cache the manifest and chapter bodies in-process with a configurable TTL (default: 5 minutes) to meet the 2-second response target without repeated R2 round-trips. Signed media URLs are never cached.
 
 ### Key Entities
 
@@ -120,7 +134,7 @@ A chapter references an embedded image or diagram. The system provides a short-l
 ## Assumptions
 
 - The R2 bucket and credentials are configured before deployment; local development may use a local file fallback.
-- Chapter content is authored once and updated infrequently — no caching invalidation strategy is required for Phase 1.
+- Chapter content is authored once and updated infrequently — cache invalidation is TTL-based only (no explicit invalidation endpoint required for Phase 1).
 - Signed URL expiry of 1 hour is acceptable for media assets; this is configurable via environment variable.
 - The manifest is the authoritative source for chapter ordering; chapter files do not contain ordering metadata.
 - All 5 chapters will be authored as part of this feature before the backend is deployed.
