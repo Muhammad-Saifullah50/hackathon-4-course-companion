@@ -1,0 +1,76 @@
+openapi: "3.1.0"
+info:
+  title: Course Companion API — Auth Endpoints
+  version: "1.0.0"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Stytch-issued JWT. Verified locally using Stytch JWKS.
+
+  schemas:
+    UserProfile:
+      type: object
+      required: [id, email, access_tier, created_at]
+      properties:
+        id:
+          type: string
+          description: Stytch user_id (stable across login methods)
+          example: "user-test-4feae2fa-8d83-4b74-b06a-c71a5d9a2c8a"
+        email:
+          type: string
+          format: email
+          example: "student@example.com"
+        access_tier:
+          type: string
+          enum: [free, premium]
+          example: "free"
+        created_at:
+          type: string
+          format: date-time
+          description: UTC timestamp of first login
+
+    ErrorResponse:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+
+security:
+  - BearerAuth: []
+
+paths:
+  /users/me:
+    get:
+      operationId: get_current_user_profile
+      summary: Get authenticated user's profile
+      description: >
+        Returns the profile of the user identified by the bearer token.
+        On first call, a user record is created automatically (first-login provisioning).
+      tags: [users]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Authenticated user's profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+              example:
+                id: "user-test-4feae2fa-8d83-4b74-b06a-c71a5d9a2c8a"
+                email: "student@example.com"
+                access_tier: "free"
+                created_at: "2026-06-04T10:00:00Z"
+        "401":
+          description: Missing, expired, or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                detail: "Invalid or expired token"

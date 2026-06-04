@@ -26,6 +26,8 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 ## Active Technologies
 - Python 3.12 + FastAPI, Pydantic v2, boto3 (S3-compatible R2 client), pytest (002-quiz-grading)
 - Cloudflare R2 for quiz JSON files — no DB writes for this feature (002-quiz-grading)
+- Python 3.12 (backend + MCP server) (003-stytch-auth)
+- Neon PostgreSQL via SQLAlchemy 2.0 async ORM (one new `users` table) (003-stytch-auth)
 
 ## Recent Changes
 - 002-quiz-grading: Added Python 3.12 + FastAPI, Pydantic v2, boto3 (S3-compatible R2 client), pytest

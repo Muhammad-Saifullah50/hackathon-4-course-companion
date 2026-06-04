@@ -11,5 +11,9 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = 300
     signed_url_expiry_seconds: int = 3600
 
+    stytch_project_id: str = ""
+    stytch_secret: str = ""
+    database_url: str = ""
+
 
 settings = Settings()

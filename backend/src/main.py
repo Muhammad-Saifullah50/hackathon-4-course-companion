@@ -4,9 +4,10 @@ from typing import AsyncGenerator
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from src.core.auth import get_stytch_client
 from src.core.dependencies import get_content_service
-from src.routers import content
-from src.routers import quizzes
+from src.routers import content, quizzes
+from src.routers import users
 from src.services.content import ServiceUnavailableError
 
 
@@ -14,6 +15,7 @@ from src.services.content import ServiceUnavailableError
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     service = get_content_service()
     await service.warm_cache()
+    get_stytch_client()  # warm JWKS cache at startup
     yield
 
 
@@ -26,6 +28,7 @@ app = FastAPI(
 
 app.include_router(content.router, prefix="/chapters", tags=["content"])
 app.include_router(quizzes.router, prefix="/quizzes", tags=["quizzes"])
+app.include_router(users.router, prefix="/users", tags=["users"])
 
 
 @app.exception_handler(ServiceUnavailableError)
