@@ -8,6 +8,7 @@ from src.core.auth import get_stytch_client
 from src.core.dependencies import get_content_service
 from src.routers import content, quizzes
 from src.routers import users
+from src.routers import progress, search, access
 from src.services.content import ServiceUnavailableError
 
 
@@ -29,6 +30,9 @@ app = FastAPI(
 app.include_router(content.router, prefix="/chapters", tags=["content"])
 app.include_router(quizzes.router, prefix="/quizzes", tags=["quizzes"])
 app.include_router(users.router, prefix="/users", tags=["users"])
+app.include_router(progress.router, prefix="/users", tags=["progress"])
+app.include_router(search.router, tags=["search"])
+app.include_router(access.router, prefix="/access", tags=["access"])
 
 
 @app.exception_handler(ServiceUnavailableError)

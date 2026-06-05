@@ -1,0 +1,315 @@
+openapi: "3.1.0"
+info:
+  title: Course Companion — Feature 004 API
+  description: >
+    Progress tracking, streak calculation, keyword search, and access tier check.
+    All endpoints require a valid Stytch session JWT passed as a Bearer token.
+    Phase 1 — zero LLM calls.
+  version: "1.0.0"
+
+servers:
+  - url: /
+    description: FastAPI backend (local dev or Vercel)
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CompletionRequest:
+      type: object
+      properties:
+        quiz_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+          description: Optional quiz score (0–100). Stored if provided; completion recorded regardless.
+      additionalProperties: false
+
+    CompletionResponse:
+      type: object
+      required: [user_id, chapter_slug, completed_at, current_streak]
+      properties:
+        user_id:
+          type: string
+        chapter_slug:
+          type: string
+        completed_at:
+          type: string
+          format: date-time
+          description: UTC ISO-8601 timestamp of completion (latest upsert).
+        quiz_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+        current_streak:
+          type: integer
+          description: User's streak after this completion.
+
+    ProgressEntry:
+      type: object
+      required: [chapter_slug, completed_at]
+      properties:
+        chapter_slug:
+          type: string
+        completed_at:
+          type: string
+          format: date-time
+        quiz_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+
+    ProgressResponse:
+      type: object
+      required: [user_id, completions, current_streak]
+      properties:
+        user_id:
+          type: string
+        completions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgressEntry"
+        current_streak:
+          type: integer
+        last_active_date:
+          type: string
+          format: date
+          nullable: true
+          description: UTC date of the user's most recent active day.
+
+    SearchResult:
+      type: object
+      required: [slug, title, excerpt, rank]
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+          description: Up to 200-char window from the content containing the match.
+        rank:
+          type: integer
+          enum: [1, 2]
+          description: "2 = title match; 1 = body-only match."
+
+    SearchResponse:
+      type: object
+      required: [results, total]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchResult"
+        total:
+          type: integer
+
+    AccessStatus:
+      type: object
+      required: [tier, allowed]
+      properties:
+        tier:
+          type: string
+          enum: [free, premium]
+        resource:
+          type: string
+          nullable: true
+          description: Echoes the `resource` query param if provided.
+        allowed:
+          type: boolean
+          description: >
+            True if user tier is 'premium', OR if resource is not 'premium'.
+            False only when tier='free' AND resource='premium'.
+
+    ErrorResponse:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+
+paths:
+  /users/{user_id}/progress:
+    put:
+      operationId: markChapterComplete
+      summary: Mark a chapter as complete
+      description: >
+        Records (or upserts) a chapter completion for the authenticated user.
+        Updates the user's streak based on UTC calendar day logic.
+        Returns 401 if JWT is missing/invalid; 403 if user_id != JWT sub;
+        404 if chapter_slug does not exist in the R2 manifest.
+      tags: [progress]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: chapter_slug
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Slug of the chapter to mark complete.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompletionRequest"
+      responses:
+        "200":
+          description: Chapter completion recorded (upserted). Returns updated state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompletionResponse"
+        "401":
+          description: Missing or invalid JWT.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: user_id path param does not match JWT subject.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: chapter_slug not found in the manifest.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      operationId: getProgress
+      summary: Get all progress for a user
+      description: >
+        Returns all chapter completions for the authenticated user along with
+        current streak and last active date.
+        Returns 401 if JWT is missing/invalid; 403 if user_id != JWT sub.
+      tags: [progress]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User's full progress state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressResponse"
+        "401":
+          description: Missing or invalid JWT.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: user_id path param does not match JWT subject.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /search:
+    get:
+      operationId: searchChapters
+      summary: Keyword search over chapter content
+      description: >
+        Searches chapter titles and body content (from the in-memory cache)
+        for the given query. Title matches rank above body-only matches.
+        Returns 400 for blank/whitespace queries; 401 without JWT;
+        503 if the chapter cache has not been warmed.
+      tags: [search]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: >
+            Search query (1–500 chars). Blank or whitespace-only queries return 400.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          description: Maximum number of results to return.
+      responses:
+        "200":
+          description: Ranked search results (may be empty).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResponse"
+        "400":
+          description: Query is blank or whitespace-only.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid JWT.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Chapter cache not yet warmed; try again shortly.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /access/check:
+    get:
+      operationId: checkAccess
+      summary: Check user access tier
+      description: >
+        Returns the authenticated user's tier and whether they are allowed
+        to access the specified resource. Without a resource param, `allowed`
+        is always true. With `resource=premium`, allowed is true only for
+        premium-tier users.
+      tags: [access]
+      parameters:
+        - name: resource
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [premium]
+          description: >
+            Optional resource to gate. Only 'premium' triggers access logic.
+            Omitting or using any other value returns allowed=true for all tiers.
+      responses:
+        "200":
+          description: Access status for the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessStatus"
+        "401":
+          description: Missing or invalid JWT.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

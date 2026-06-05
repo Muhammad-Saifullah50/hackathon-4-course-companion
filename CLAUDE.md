@@ -28,6 +28,8 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 - Cloudflare R2 for quiz JSON files — no DB writes for this feature (002-quiz-grading)
 - Python 3.12 (backend + MCP server) (003-stytch-auth)
 - Neon PostgreSQL via SQLAlchemy 2.0 async ORM (one new `users` table) (003-stytch-auth)
+- Python 3.12 + FastAPI, Pydantic v2, SQLAlchemy 2.0 async, asyncpg, Stytch (JWT auth), boto3 (R2 search cache) (004-progress-streaks-search-access)
+- Neon PostgreSQL (progress + user streak fields); Cloudflare R2 (chapter content — cached in-process for search) (004-progress-streaks-search-access)
 
 ## Recent Changes
 - 002-quiz-grading: Added Python 3.12 + FastAPI, Pydantic v2, boto3 (S3-compatible R2 client), pytest
