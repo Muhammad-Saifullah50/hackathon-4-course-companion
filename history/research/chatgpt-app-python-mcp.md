@@ -679,6 +679,132 @@ For production, run `npm run build` as part of the deploy step before starting t
 
 ---
 
+## 13. Stytch Connected Apps — Auth for the MCP Server
+
+> Source: [Stytch — Guide to authentication for the OpenAI Apps SDK](https://stytch.com/blog/guide-to-authentication-for-the-openai-apps-sdk/) | Added 2026-06-05
+
+### Mental model
+
+```
+ChatGPT (OAuth public client)
+    ↕  OAuth 2.1 + PKCE
+Stytch Connected Apps (identity layer — DCR, consent, token issuance)
+    ↕  Bearer JWT
+chatgpt-app/ (FastMCP server — enforces scopes, validates tokens)
+    ↕  HTTP + same Bearer token forwarded
+backend/ (FastAPI — already validates Stytch JWTs)
+```
+
+**Key insight for this project**: The backend already issues and validates Stytch JWTs. The MCP server can forward the same token downstream to FastAPI — **no new identity infrastructure**. Stytch Connected Apps just adds the DCR + OAuth 2.1 layer that ChatGPT expects.
+
+---
+
+### Flow (4 steps)
+
+1. **Discovery**: ChatGPT reads `/.well-known/oauth-protected-resource` to find the auth server. FastMCP's `RemoteAuthProvider` exposes this automatically — nothing to build manually.
+2. **DCR**: ChatGPT registers itself with Stytch's `registration_endpoint`. Stytch handles this; your app does nothing.
+3. **Authorization Code + PKCE**: User signs in via Stytch, approves scopes, ChatGPT gets an access token. Built-in ChatGPT consent screen shown automatically.
+4. **Tool calls**: Every call arrives with `Authorization: Bearer <stytch_jwt>`. FastMCP's `BearerAuthProvider` validates it; the MCP server extracts `sub` for user identity and forwards the token to FastAPI.
+
+---
+
+### FastMCP wiring
+
+```python
+# chatgpt-app/server.py
+import os
+from fastmcp import FastMCP, auth
+from fastmcp.server.auth import BearerAuthProvider
+from fastmcp.server.dependencies import get_access_token
+
+auth_provider = BearerAuthProvider(
+    jwks_uri=f"{os.environ['STYTCH_PROJECT_DOMAIN']}/.well-known/jwks.json",
+    issuer=os.environ["STYTCH_PROJECT_DOMAIN"],
+    algorithm="RS256",
+    audience=os.environ["STYTCH_PROJECT_ID"],
+)
+
+mcp = FastMCP(name="course-companion", auth=auth_provider)
+```
+
+Get the validated token inside any tool:
+
+```python
+from fastmcp.server.dependencies import get_access_token
+
+@mcp.tool(security_schemes=[auth.OAuth2(scopes=["openid", "profile"])])
+async def get_progress() -> dict:
+    token_ctx = get_access_token()  # .token (raw JWT) and .claims (dict)
+    user_id = token_ctx.claims["sub"]
+    # Forward same token to FastAPI backend
+    response = await http.get(
+        f"/users/{user_id}/progress",
+        headers={"Authorization": f"Bearer {token_ctx.token}"}
+    )
+    ...
+```
+
+---
+
+### Per-tool auth declarations
+
+| Tool | `securitySchemes` | Reason |
+|---|---|---|
+| `list_chapters` | `noauth` | Public catalog |
+| `get_chapter` | `noauth` (free tier) / `oauth2` (premium) | Access gate checked server-side |
+| `get_quiz` | `noauth` | Quiz questions are public |
+| `submit_quiz_answer` | `noauth` | Grading is stateless |
+| `get_progress` | `oauth2(openid, profile)` | Requires user identity |
+| `search_content` | `noauth` | Public search |
+| `check_access` | `oauth2(openid, profile)` | Requires user identity |
+
+For mixed tools (free preview + richer data when authed), declare **both** `noauth` and `oauth2`:
+
+```python
+@mcp.tool(security_schemes=[auth.NoAuth(), auth.OAuth2(scopes=["openid", "profile"])])
+async def get_chapter(slug: str) -> dict:
+    token_ctx = get_access_token()  # None if unauthenticated
+    ...
+```
+
+---
+
+### Stytch Connected Apps setup (one-time)
+
+1. Enable **Connected Apps** in Stytch Dashboard → your project → Connected Apps
+2. Note the `STYTCH_PROJECT_DOMAIN` (e.g. `https://<project-id>.api.stytch.com`) — this is the OIDC issuer
+3. No manual client registration — ChatGPT does DCR automatically via Stytch's `registration_endpoint`
+4. Scopes to enable: `openid`, `profile` (minimum for user identity)
+
+**Environment variables needed** (in addition to existing backend vars):
+
+```bash
+# chatgpt-app/ env vars
+STYTCH_PROJECT_DOMAIN=https://<project-id>.api.stytch.com
+STYTCH_PROJECT_ID=project-live-xxxxxxxx
+BACKEND_URL=https://api.course-companion.vercel.app
+MCP_SERVER_BASE_URL=https://mcp.course-companion.vercel.app  # for PRM advertising
+```
+
+---
+
+### RemoteAuthProvider vs BearerAuthProvider
+
+| Provider | When to use |
+|---|---|
+| `BearerAuthProvider` | You only need JWT validation; Stytch Connected Apps handles DCR/PRM externally |
+| `RemoteAuthProvider` | You want FastMCP to also auto-expose `/.well-known/oauth-protected-resource` and issue WWW-Authenticate challenges automatically |
+
+For this project, start with `BearerAuthProvider` (simpler). Upgrade to `RemoteAuthProvider` if ChatGPT's discovery fails in testing.
+
+---
+
+### Write-action consent
+
+For `submit_quiz_answer` (only tool that mutates state — quiz session), ChatGPT automatically shows a write-action confirmation prompt. No extra code needed. Set `destructiveHint: False` in tool annotations.
+
+---
+
 ## References
 
 - [OpenAI Apps SDK: Build MCP Server](https://developers.openai.com/apps-sdk/build/mcp-server)
@@ -691,3 +817,5 @@ For production, run `npm run build` as part of the deploy step before starting t
 - [MCP Apps Compatibility in ChatGPT](https://developers.openai.com/apps-sdk/mcp-apps-in-chatgpt)
 - [@openai/apps-sdk-ui Storybook](https://openai.github.io/apps-sdk-ui/)
 - [@openai/apps-sdk-ui GitHub](https://github.com/openai/apps-sdk-ui)
+- [Stytch — Guide to auth for OpenAI Apps SDK](https://stytch.com/blog/guide-to-authentication-for-the-openai-apps-sdk/)
+- [Stytch Connected Apps](https://stytch.com/connected-apps)
