@@ -1,8 +1,19 @@
 # Feature Specification: ChatGPT App — MCP Server + React Widgets
 
-**Feature Branch**: `001-chatgpt-mcp-widgets`
+**Feature Branch**: `005-chatgpt-mcp-widgets`
 **Created**: 2026-06-05
 **Status**: Draft
+
+---
+
+## Clarifications
+
+### Session 2026-06-05
+
+- Q: If a user pauses a quiz mid-way and later asks to continue, what should happen? → A: Always restart from question 1 (stateless — no server-side session storage).
+- Q: How much chapter content should the chapter-reader widget display? → A: Full chapter markdown rendered as formatted HTML.
+- Q: When an unauthenticated user requests a premium chapter via get_chapter, what should happen? → A: All chapters are publicly accessible — no premium gating on chapter content. The access-status tool reflects the user's tier for other gated features (Phase 2+), not chapter reading.
+- Q: When a backend call fails (timeout, 5xx), what should the widget display? → A: A generic "Service unavailable, please try again" message inside the widget panel — consistent across all widgets.
 
 ---
 
@@ -74,27 +85,28 @@ A learner asks ChatGPT to find content about a specific concept (e.g., "find cha
 
 ---
 
-### User Story 5 — Check Content Access Tier (Priority: P5)
+### User Story 5 — Check Account Access Tier (Priority: P5)
 
-An authenticated learner encounters a premium chapter. ChatGPT checks their access tier and displays a panel showing their current tier (Free or Premium), how many chapters are unlocked, and an upgrade prompt if they are on the free tier.
+An authenticated learner asks ChatGPT about their account status. ChatGPT displays a panel showing their current tier (Free or Premium). All chapter content is publicly accessible regardless of tier — the access tier is informational for Phase 1 and will gate Phase 2 premium features.
 
-**Why this priority**: Access gating is a business requirement. Provides a clear, non-disruptive way to inform users of content limits.
+**Why this priority**: Access tier visibility is a business requirement for the freemium model. Provides a clear, non-disruptive way for users to see their account status.
 
-**Independent Test**: Sign in as a free-tier user, request a premium chapter, verify access-status panel appears with tier info and upgrade prompt.
+**Independent Test**: Sign in, ask "what's my access tier?", verify access-status panel appears showing the user's tier.
 
 **Acceptance Scenarios**:
 
-1. **Given** a free-tier authenticated user requests a premium chapter, **When** ChatGPT checks access, **Then** an access-status panel shows their tier, unlocked chapter count, and an upgrade call-to-action.
-2. **Given** a premium-tier user, **When** access is checked, **Then** the panel confirms full access with no upgrade prompt.
+1. **Given** an authenticated free-tier user, **When** ChatGPT checks access, **Then** an access-status panel shows their tier and an upgrade call-to-action.
+2. **Given** an authenticated premium-tier user, **When** access is checked, **Then** the panel confirms premium status.
 3. **Given** an unauthenticated user, **When** access is checked, **Then** ChatGPT prompts them to sign in first.
 
 ---
 
 ### Edge Cases
 
-- What happens when the backend is unreachable? ChatGPT receives an error message and informs the user the service is temporarily unavailable.
+- What happens when the backend is unreachable or returns a 5xx/timeout? Every widget panel displays a generic "Service unavailable, please try again" message — no widget-specific error copy.
 - What happens when an authenticated user's session expires mid-conversation? ChatGPT automatically triggers re-authentication before retrying the tool call.
 - What happens when a chapter has no associated quiz? The chapter panel loads normally; the "Take Quiz" button is absent or shows "No quiz available".
+- What happens when a user pauses a quiz mid-way and later asks to continue? The quiz always restarts from question 1 — no session state is preserved between interactions (stateless by design).
 - What happens when a user's access token lacks required scopes? The tool returns an authorization error; ChatGPT prompts the user to re-link the app.
 - What happens when search returns a very large result set? Results are capped at a reasonable limit; the panel indicates total matches with a note to refine the query.
 - What happens when a user tries to use the app without connecting it first? ChatGPT's standard app-linking flow handles this before any tool is called.
@@ -108,9 +120,9 @@ An authenticated learner encounters a premium chapter. ChatGPT checks their acce
 **Content Access (unauthenticated)**
 
 - **FR-001**: Users MUST be able to list all course chapters without signing in.
-- **FR-002**: Users MUST be able to read any free-tier chapter without signing in.
+- **FR-002**: Users MUST be able to read any chapter without signing in — all chapter content is publicly accessible.
 - **FR-003**: Users MUST be able to search course content by keyword without signing in.
-- **FR-004**: All chapter content and search results MUST be displayed in a visual panel inside the ChatGPT conversation.
+- **FR-004**: All chapter content and search results MUST be displayed in a visual panel inside the ChatGPT conversation. The chapter-reader panel MUST render the full chapter markdown as formatted HTML — not a summary or excerpt.
 
 **Quiz (authenticated)**
 
@@ -124,8 +136,8 @@ An authenticated learner encounters a premium chapter. ChatGPT checks their acce
 
 **Access Control (authenticated)**
 
-- **FR-009**: Authenticated users MUST be able to check their access tier and see how many chapters they can access.
-- **FR-010**: Access control MUST be enforced server-side on every protected tool call — the ChatGPT app MUST NOT be the sole gatekeeper.
+- **FR-009**: Authenticated users MUST be able to check their account access tier (Free or Premium) via a visual panel.
+- **FR-010**: All chapter content is publicly accessible — no chapter is gated by access tier in Phase 1. Access tier is informational and will gate Phase 2 premium features.
 
 **Authentication**
 
@@ -160,7 +172,7 @@ An authenticated learner encounters a premium chapter. ChatGPT checks their acce
 
 ### Measurable Outcomes
 
-- **SC-001**: A new user can browse and read a free chapter inside ChatGPT within 30 seconds of connecting the app — no sign-in required.
+- **SC-001**: A new user can browse and read any chapter inside ChatGPT within 30 seconds of connecting the app — no sign-in required.
 - **SC-002**: An authenticated user can complete a full quiz (all questions + score screen) without leaving the ChatGPT conversation.
 - **SC-003**: All 7 tools are callable and return a visual panel when tested in ChatGPT Developer Mode.
 - **SC-004**: A keyword search returns visible results in under 3 seconds as perceived by the user.
@@ -177,7 +189,7 @@ An authenticated learner encounters a premium chapter. ChatGPT checks their acce
 - The ChatGPT app is tested via ChatGPT Developer Mode before any production submission.
 - Tutor skill files and persona behavior are **out of scope** — the app instructions contain only a brief description and a summary of available tools (Feature 7 handles the full skill content).
 - Widget UI is bundled as part of the ChatGPT app deployment — no separate CDN hosting is required.
-- Free-tier access limits are defined and enforced by the backend; this app does not implement access rules independently.
+- All chapter content is publicly accessible in Phase 1. The access tier (Free/Premium) is stored in the backend and surfaced via `check_access` but does not gate any Phase 1 content.
 
 ---
 

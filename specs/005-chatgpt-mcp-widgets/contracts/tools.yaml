@@ -1,0 +1,287 @@
+openapi: "3.1.0"
+info:
+  title: Course Companion MCP Tools
+  description: >
+    OpenAPI-style schema for the 7 MCP tools exposed by the Course Companion
+    ChatGPT App. Each tool maps to one FastAPI backend endpoint.
+    Public tools require no auth. Protected tools require a Stytch Bearer token.
+  version: "1.0.0"
+
+# Auth schemes
+components:
+  securitySchemes:
+    stytchBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Stytch Connected Apps JWT (RS256). Issued by Stytch OAuth flow.
+        Validated by FastAPI backend via JWKS at
+        https://<STYTCH_PROJECT_DOMAIN>/.well-known/jwks.json
+
+  schemas:
+    # ── Shared ──────────────────────────────────────────────────────────────
+    ErrorPanel:
+      type: object
+      required: [error, message]
+      properties:
+        error: { type: string }
+        message:
+          type: string
+          example: "Service unavailable, please try again"
+
+    # ── Chapters ─────────────────────────────────────────────────────────────
+    ChapterSummary:
+      type: object
+      required: [slug, title, chapter_number, completed]
+      properties:
+        slug: { type: string, example: "intro-to-mcp" }
+        title: { type: string, example: "Introduction to MCP" }
+        chapter_number: { type: integer, example: 1 }
+        completed: { type: boolean, default: false }
+
+    ChapterPanel:
+      type: object
+      required: [slug, title, content_html, chapter_number, has_quiz]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        content_html: { type: string, description: "Full chapter markdown rendered as HTML" }
+        chapter_number: { type: integer }
+        next_slug: { type: string, nullable: true }
+        prev_slug: { type: string, nullable: true }
+        has_quiz: { type: boolean }
+
+    # ── Quiz ─────────────────────────────────────────────────────────────────
+    QuizQuestion:
+      type: object
+      required: [question_id, text, options]
+      properties:
+        question_id: { type: string }
+        text: { type: string }
+        options:
+          type: array
+          items: { type: string }
+          minItems: 2
+          maxItems: 4
+
+    QuizPanel:
+      type: object
+      required: [chapter_slug, chapter_title, questions, total_questions]
+      properties:
+        chapter_slug: { type: string }
+        chapter_title: { type: string }
+        questions:
+          type: array
+          items: { $ref: "#/components/schemas/QuizQuestion" }
+        total_questions: { type: integer }
+
+    QuestionResult:
+      type: object
+      required: [question_id, correct, correct_answer]
+      properties:
+        question_id: { type: string }
+        correct: { type: boolean }
+        correct_answer: { type: string }
+
+    QuizResult:
+      type: object
+      required: [chapter_slug, score, total, percentage, per_question]
+      properties:
+        chapter_slug: { type: string }
+        score: { type: integer }
+        total: { type: integer }
+        percentage: { type: number, format: float }
+        per_question:
+          type: array
+          items: { $ref: "#/components/schemas/QuestionResult" }
+
+    # ── Progress ─────────────────────────────────────────────────────────────
+    ChapterProgressItem:
+      type: object
+      required: [slug, title, completed]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        completed: { type: boolean }
+        quiz_score: { type: integer, nullable: true }
+
+    ProgressPanel:
+      type: object
+      required: [user_id, current_streak, completion_percentage, total_chapters, completed_chapters, chapter_list]
+      properties:
+        user_id: { type: string }
+        current_streak: { type: integer, description: "Consecutive active days" }
+        completion_percentage: { type: number, format: float }
+        total_chapters: { type: integer }
+        completed_chapters: { type: integer }
+        chapter_list:
+          type: array
+          items: { $ref: "#/components/schemas/ChapterProgressItem" }
+
+    # ── Search ───────────────────────────────────────────────────────────────
+    SearchResult:
+      type: object
+      required: [chapter_slug, chapter_title, excerpt]
+      properties:
+        chapter_slug: { type: string }
+        chapter_title: { type: string }
+        excerpt: { type: string, description: "Short snippet with keyword in context" }
+
+    SearchResultsPanel:
+      type: object
+      required: [query, total_matches, results]
+      properties:
+        query: { type: string }
+        total_matches: { type: integer }
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/SearchResult" }
+          maxItems: 20
+
+    # ── Access ───────────────────────────────────────────────────────────────
+    AccessStatusPanel:
+      type: object
+      required: [user_id, tier, is_premium]
+      properties:
+        user_id: { type: string }
+        tier:
+          type: string
+          enum: [free, premium]
+        is_premium: { type: boolean }
+        upgrade_url: { type: string, nullable: true }
+
+# ── Tool Definitions ──────────────────────────────────────────────────────────
+# Each entry documents one MCP tool: its args, response, auth, and backend mapping.
+
+tools:
+
+  list_chapters:
+    description: >
+      List all available course chapters with title and completion status.
+      Public — no authentication required.
+    auth: none
+    backend: "GET /chapters"
+    input:
+      type: object
+      properties: {}
+      required: []
+    output:
+      type: object
+      required: [chapters]
+      properties:
+        chapters:
+          type: array
+          items: { $ref: "#/components/schemas/ChapterSummary" }
+
+  get_chapter:
+    description: >
+      Fetch and display the full content of a course chapter by slug.
+      Public — no authentication required.
+    auth: none
+    backend: "GET /chapters/{slug}"
+    input:
+      type: object
+      required: [slug]
+      properties:
+        slug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+          description: URL-safe chapter identifier
+    output:
+      $ref: "#/components/schemas/ChapterPanel"
+    errors:
+      404: "Chapter not found"
+
+  get_quiz:
+    description: >
+      Fetch quiz questions for a chapter. Requires authentication to associate
+      a subsequent score submission with the user account.
+    auth: stytchBearer
+    backend: "GET /quizzes/{chapter_slug}"
+    input:
+      type: object
+      required: [chapter_slug]
+      properties:
+        chapter_slug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+    output:
+      $ref: "#/components/schemas/QuizPanel"
+    errors:
+      404: "No quiz found for this chapter"
+
+  submit_quiz:
+    description: >
+      Submit answers for a completed quiz. Records score against the user's
+      account and returns per-question feedback. Requires authentication.
+    auth: stytchBearer
+    backend: "POST /quizzes/{chapter_slug}/submit"
+    input:
+      type: object
+      required: [chapter_slug, answers]
+      properties:
+        chapter_slug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+        answers:
+          type: object
+          description: "Map of question_id → selected option text"
+          additionalProperties: { type: string }
+    output:
+      $ref: "#/components/schemas/QuizResult"
+    errors:
+      400: "Invalid or incomplete answers"
+      404: "Quiz not found"
+
+  get_progress:
+    description: >
+      Retrieve the authenticated user's learning streak, overall completion
+      percentage, and per-chapter progress. Requires authentication.
+    auth: stytchBearer
+    backend: "GET /users/{user_id}/progress"
+    input:
+      type: object
+      properties: {}
+      required: []
+      description: "user_id is extracted from the authenticated Bearer token"
+    output:
+      $ref: "#/components/schemas/ProgressPanel"
+
+  search_content:
+    description: >
+      Search course content by keyword. Returns matching chapters with excerpts.
+      Public — no authentication required.
+    auth: none
+    backend: "GET /search?q={query}&limit={limit}"
+    input:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Keyword or phrase to search for
+        limit:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 20
+    output:
+      $ref: "#/components/schemas/SearchResultsPanel"
+
+  check_access:
+    description: >
+      Check the authenticated user's account access tier (Free or Premium).
+      Informational in Phase 1 — does not gate any chapter content.
+      Requires authentication.
+    auth: stytchBearer
+    backend: "GET /access/check"
+    input:
+      type: object
+      properties: {}
+      required: []
+      description: "user_id is extracted from the authenticated Bearer token"
+    output:
+      $ref: "#/components/schemas/AccessStatusPanel"

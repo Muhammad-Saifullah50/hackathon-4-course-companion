@@ -1,0 +1,50 @@
+app_name: "Course Companion"
+description: >
+  An AI-powered tutor for the AI Agent Development course. Browse chapters,
+  take quizzes, track your learning progress, search course content, and check
+  your account tier — all without leaving ChatGPT.
+version: "1.0.0"
+
+# MCP server endpoint (update after Vercel deployment)
+mcp_server_url: "https://course-companion-mcp.vercel.app/mcp"
+
+# OAuth — Stytch Connected Apps
+oauth:
+  client_id: "${STYTCH_CLIENT_ID}"
+  authorization_endpoint: "${STYTCH_PROJECT_DOMAIN}/v1/oauth/authorize"
+  token_endpoint: "${STYTCH_PROJECT_DOMAIN}/v1/oauth/token"
+  jwks_uri: "${STYTCH_PROJECT_DOMAIN}/.well-known/jwks.json"
+  scopes:
+    - openid
+    - profile
+    - email
+
+# Tools exposed to ChatGPT
+tools:
+  - name: list_chapters
+    description: >
+      List all available course chapters with title and completion status.
+      No sign-in required.
+  - name: get_chapter
+    description: >
+      Fetch and display the full content of a course chapter by its slug.
+      No sign-in required.
+  - name: get_quiz
+    description: >
+      Fetch quiz questions for a chapter. Requires sign-in to record your score.
+  - name: submit_quiz
+    description: >
+      Submit answers for a completed quiz. Records your score and returns
+      per-question feedback. Requires sign-in.
+  - name: get_progress
+    description: >
+      Show your learning streak, overall completion percentage, and per-chapter
+      status. Requires sign-in.
+  - name: search_content
+    description: >
+      Search course content by keyword. Returns matching chapters with excerpts.
+      No sign-in required.
+  - name: check_access
+    description: >
+      Check your account tier (Free or Premium) and get an upgrade link if applicable.
+      Requires sign-in.

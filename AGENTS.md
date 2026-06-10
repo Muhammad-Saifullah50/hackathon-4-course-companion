@@ -167,3 +167,37 @@ JWT_SECRET_KEY=
 ## Project Constitution
 
 See `.specify/memory/constitution.md` for the full set of immutable architecture, quality, and security principles that govern this project.
+
+---
+
+## Specification Workflow
+
+- `.specify/memory/constitution.md` — Project principles
+- `specs/<feature>/spec.md` — Feature requirements
+- `specs/<feature>/plan.md` — Architecture decisions
+- `specs/<feature>/tasks.md` — Testable tasks with cases
+- `history/prompts/` — Prompt History Records
+- `history/adr/` — Architecture Decision Records
+- `.specify/` — SpecKit Plus templates and scripts
+
+The project constitution defines the code quality, testing, performance, security, and architecture standards for all features.
+
+---
+
+## Active Feature Technologies
+
+- **002-quiz-grading**: Python 3.12, FastAPI, Pydantic v2, boto3 (S3-compatible R2 client), and pytest
+- **002-quiz-grading storage**: Cloudflare R2 quiz JSON files; no database writes
+- **003-stytch-auth**: Python 3.12 for the backend and MCP server
+- **003-stytch-auth storage**: Neon PostgreSQL via SQLAlchemy 2.0 async ORM with a `users` table
+- **004-progress-streaks-search-access**: Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0 async, asyncpg, Stytch JWT auth, and boto3 for the R2 search cache
+- **004-progress-streaks-search-access storage**: Neon PostgreSQL for progress and streak fields; Cloudflare R2 chapter content cached in-process for search
+- **005-chatgpt-mcp-widgets server**: Python 3.12, `fastmcp>=2.0`, `httpx>=0.27`, and `pydantic>=2.0`
+- **005-chatgpt-mcp-widgets UI**: TypeScript, React 19, Vite 6, and TypeScript 5
+- **005-chatgpt-mcp-widgets storage**: Stateless MCP server; all data comes from the existing FastAPI backend
+
+---
+
+## Recent Changes
+
+- **002-quiz-grading**: Added Python 3.12, FastAPI, Pydantic v2, boto3 (S3-compatible R2 client), and pytest
