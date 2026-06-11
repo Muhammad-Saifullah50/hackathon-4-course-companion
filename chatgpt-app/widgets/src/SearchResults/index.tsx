@@ -1,4 +1,5 @@
 import { ErrorPanel } from "../ErrorPanel";
+import { Markdown } from "../Markdown";
 
 interface SearchResult {
   chapter_slug: string;
@@ -26,52 +27,68 @@ export function SearchResults({
   }
 
   return (
-    <div style={{ padding: "1rem" }}>
-      <div style={{ marginBottom: "1rem" }}>
-        <h2 style={{ margin: "0 0 0.25rem" }}>
-          Search results for &ldquo;{query}&rdquo;
-        </h2>
-        <p style={{ margin: 0, color: "#6b7280" }}>
-          {total_matches} match(es) found
-        </p>
-      </div>
+    <main className="widget-shell">
+      <section className="surface" aria-labelledby="search-title">
+        <header className="surface-header">
+          <p className="eyebrow">Course search</p>
+          <h1 id="search-title" className="title mt-1">
+            Results for “{query}”
+          </h1>
+          <p className="muted mt-1">
+            {total_matches} {total_matches === 1 ? "match" : "matches"} found
+          </p>
+        </header>
 
-      {results.length === 0 ? (
-        <p style={{ color: "#6b7280" }}>
-          No results found. Try browsing all chapters instead.
-        </p>
-      ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {results.map((result) => (
-            <li
-              key={result.chapter_slug}
-              style={{
-                borderBottom: "1px solid #e5e7eb",
-                paddingBottom: "1rem",
-                marginBottom: "1rem",
-              }}
-            >
-              <h3 style={{ margin: "0 0 0.5rem" }}>{result.chapter_title}</h3>
-              <p style={{ margin: "0 0 0.75rem", color: "#374151" }}>
-                {result.excerpt}
-              </p>
-              <button
-                onClick={() => onSelectChapter(result.chapter_slug)}
-                style={{
-                  padding: "0.5rem 1rem",
-                  backgroundColor: "#3b82f6",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "0.375rem",
-                  cursor: "pointer",
-                }}
-              >
-                Read Chapter
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+        {results.length === 0 ? (
+          <div className="px-5 py-10 text-center">
+            <SearchIcon />
+            <p className="mt-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              No results found
+            </p>
+            <p className="muted mt-1">
+              Try a broader keyword or browse the chapter list.
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-zinc-200/80 dark:divide-zinc-700">
+            {results.map((result) => (
+              <li key={result.chapter_slug} className="px-4 py-4 sm:px-5">
+                <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                  {result.chapter_title}
+                </h2>
+                <div className="mt-2 line-clamp-4 text-zinc-600 dark:text-zinc-300">
+                  <Markdown content={result.excerpt} compact />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onSelectChapter(result.chapter_slug)}
+                  className="button-secondary mt-3"
+                >
+                  Read chapter
+                  <ArrowRightIcon />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg aria-hidden="true" className="mx-auto size-7 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m15.5 15.5 4 4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg aria-hidden="true" className="size-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4.5 10h11m-4-4 4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

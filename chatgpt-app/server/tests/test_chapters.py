@@ -6,25 +6,22 @@ MOCK_CHAPTERS_LIST = [
     {
         "slug": "intro",
         "title": "Introduction",
-        "chapter_number": 1,
-        "completed": False,
+        "order": 1,
     },
     {
         "slug": "agents-101",
         "title": "Agents 101",
-        "chapter_number": 2,
-        "completed": True,
+        "order": 2,
     },
 ]
 
 MOCK_CHAPTER_DETAIL = {
     "slug": "intro",
     "title": "Introduction",
-    "content_html": "<p>Welcome to the course.</p>",
-    "chapter_number": 1,
+    "content": "Welcome to the course.",
+    "order": 1,
     "next_slug": "agents-101",
     "prev_slug": None,
-    "has_quiz": True,
 }
 
 
@@ -37,13 +34,12 @@ async def test_list_chapters_returns_chapter_summaries():
 
         result = await list_chapters()
 
-    assert "chapters" in result
-    assert len(result["chapters"]) == 2
-    first = result["chapters"][0]
+    assert result.structured_content is not None
+    assert len(result.structured_content["chapters"]) == 2
+    first = result.structured_content["chapters"][0]
     assert first["slug"] == "intro"
     assert first["title"] == "Introduction"
-    assert first["chapter_number"] == 1
-    assert first["completed"] is False
+    assert first["order"] == 1
 
 
 @pytest.mark.asyncio
@@ -55,12 +51,12 @@ async def test_get_chapter_returns_chapter_panel():
 
         result = await get_chapter("intro")
 
-    assert result["slug"] == "intro"
-    assert result["title"] == "Introduction"
-    assert result["content_html"] == "<p>Welcome to the course.</p>"
-    assert result["next_slug"] == "agents-101"
-    assert result["prev_slug"] is None
-    assert result["has_quiz"] is True
+    assert result.structured_content is not None
+    assert result.structured_content["slug"] == "intro"
+    assert result.structured_content["title"] == "Introduction"
+    assert result.structured_content["content"] == "Welcome to the course."
+    assert result.structured_content["next_slug"] == "agents-101"
+    assert result.structured_content["prev_slug"] is None
 
 
 @pytest.mark.asyncio

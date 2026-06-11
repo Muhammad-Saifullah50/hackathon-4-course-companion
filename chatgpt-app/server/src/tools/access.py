@@ -8,30 +8,37 @@ from ..main import mcp
 from ..client import backend
 from ..core.config import settings
 from ..models.access import AccessStatusPanel
+from ..tool_metadata import READ_ONLY_ANNOTATIONS, output_schema
+from ..auth import (
+    OAUTH_SECURITY,
+    authorize_request,
+    downstream_authentication_failed,
+)
 
 
 @mcp.tool(
-    app=AppConfig(resource_uri="ui://widget/access-status.html"),
+    app=AppConfig(
+        resource_uri="ui://widget/access-status.html",
+        visibility=["model", "app"],
+    ),
+    meta={"securitySchemes": OAUTH_SECURITY},
+    output_schema=output_schema(AccessStatusPanel),
+    annotations=READ_ONLY_ANNOTATIONS,
 )
-async def check_access(ctx: Context) -> ToolResult:
+async def check_access(ctx: Context | None = None) -> ToolResult:
     """Check the authenticated user's access tier."""
-    auth = getattr(ctx, "auth", None)
-    token = None
-    if auth is not None:
-        token = getattr(auth, "token", getattr(auth, "access_token", None))
-    headers = {"Authorization": f"Bearer {token}"} if token else {}
-
+    authorization = await authorize_request(
+        "ui://widget/access-status.html", ctx
+    )
+    if isinstance(authorization, ToolResult):
+        return authorization
+    headers = {"Authorization": f"Bearer {authorization.token}"}
     try:
         data = await backend.get("/access/check", headers=headers)
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 401:
-            panel = AccessStatusPanel(tier="free", allowed=True)
-            if settings.upgrade_url:
-                panel = panel.model_copy(update={"upgrade_url": settings.upgrade_url})
-            return ToolResult(
-                content=[TextContent(type="text", text="Free tier — sign in to check your access.")],
-                structured_content=panel.model_dump(),
-                meta={"ui": {"resourceUri": "ui://widget/access-status.html"}, "openai/outputTemplate": "ui://widget/access-status.html"},
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            return downstream_authentication_failed(
+                "ui://widget/access-status.html"
             )
         raise
 

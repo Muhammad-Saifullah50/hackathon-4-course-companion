@@ -5,11 +5,19 @@ from fastmcp.apps import AppConfig
 
 from ..main import mcp
 from ..client import backend
-from ..models.chapters import ChapterPanel, ChapterSummary
+from ..models.chapters import ChapterListPanel, ChapterPanel, ChapterSummary
+from ..auth import NOAUTH_SECURITY
+from ..tool_metadata import READ_ONLY_ANNOTATIONS, output_schema
 
 
 @mcp.tool(
-    app=AppConfig(resource_uri="ui://widget/chapter-list.html"),
+    app=AppConfig(
+        resource_uri="ui://widget/chapter-list.html",
+        visibility=["model", "app"],
+    ),
+    meta={"securitySchemes": NOAUTH_SECURITY},
+    output_schema=output_schema(ChapterListPanel),
+    annotations=READ_ONLY_ANNOTATIONS,
 )
 async def list_chapters() -> ToolResult:
     """List all available course chapters."""
@@ -23,9 +31,15 @@ async def list_chapters() -> ToolResult:
 
 
 @mcp.tool(
-    app=AppConfig(resource_uri="ui://widget/chapter-reader.html"),
+    app=AppConfig(
+        resource_uri="ui://widget/chapter-reader.html",
+        visibility=["model", "app"],
+    ),
+    meta={"securitySchemes": NOAUTH_SECURITY},
+    output_schema=output_schema(ChapterPanel),
+    annotations=READ_ONLY_ANNOTATIONS,
 )
-async def get_chapter(slug: str = "") -> ToolResult:
+async def get_chapter(slug: str) -> ToolResult:
     """Get the full content of a specific chapter by its slug.
 
     Args:

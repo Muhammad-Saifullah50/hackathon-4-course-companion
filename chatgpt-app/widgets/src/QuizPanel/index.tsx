@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import { ErrorPanel } from "../ErrorPanel";
 import type { ErrorState } from "../types";
 
@@ -42,136 +43,186 @@ export function QuizPanel({
 }: QuizPanelProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answered, setAnswered] = useState<Set<string>>(new Set());
+  const [editingAnswer, setEditingAnswer] = useState(false);
 
   if (error) {
     return <ErrorPanel error={error} />;
   }
 
-  const allAnswered = Object.keys(answers).length === total_questions;
-  const currentQuestion = questions[currentIndex];
+  if (questions.length === 0) {
+    return <QuizEmptyState chapterTitle={chapter_title} />;
+  }
+
+  const questionCount = total_questions || questions.length;
+  const answeredCount = questions.filter(
+    (question) => answers[question.question_id] !== undefined,
+  ).length;
+  const allAnswered = answeredCount === questions.length;
+  const currentQuestion = questions[currentIndex] ?? questions[0];
 
   function handleOptionClick(questionId: string, option: string) {
-    if (answered.has(questionId)) return;
+    setAnswers((current) => ({ ...current, [questionId]: option }));
+  }
 
-    const newAnswers = { ...answers, [questionId]: option };
-    const newAnswered = new Set(answered).add(questionId);
-
-    setAnswers(newAnswers);
-    setAnswered(newAnswered);
-
-    // Auto-advance if not on the last question
-    if (currentIndex < total_questions - 1) {
-      setCurrentIndex(currentIndex + 1);
+  function handleContinue() {
+    if (allAnswered) {
+      setEditingAnswer(false);
+      return;
+    }
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex((index) => index + 1);
     }
   }
 
-  function handleSubmit() {
-    onSubmit(answers);
-  }
-
   return (
-    <div
-      style={{
-        fontFamily: "sans-serif",
-        maxWidth: 640,
-        margin: "0 auto",
-        padding: "1.5rem",
-      }}
-    >
-      <h2 style={{ marginBottom: "0.25rem" }}>Quiz: {chapter_title}</h2>
-      <p style={{ color: "#6b7280", marginBottom: "1.5rem" }}>
-        Chapter: {chapter_slug}
-      </p>
+    <main className="widget-shell">
+      <section className="surface" aria-labelledby="quiz-title">
+        <header className="surface-header">
+          <p className="eyebrow">Knowledge check</p>
+          <h1 id="quiz-title" className="title mt-1">
+            {chapter_title || "Chapter quiz"}
+          </h1>
+          <p className="muted mt-1">{formatSlug(chapter_slug)}</p>
+        </header>
 
-      {!allAnswered ? (
-        <div>
-          <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "1rem" }}>
-            Question {currentIndex + 1} of {total_questions}
-          </p>
-          <p style={{ fontWeight: 600, marginBottom: "1rem" }}>
-            {currentQuestion.text}
-          </p>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {currentQuestion.options.map((option) => {
-              const isSelected = answers[currentQuestion.question_id] === option;
-              return (
-                <li key={option} style={{ marginBottom: "0.5rem" }}>
-                  <button
-                    onClick={() => handleOptionClick(currentQuestion.question_id, option)}
-                    disabled={answered.has(currentQuestion.question_id)}
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "0.75rem 1rem",
-                      borderRadius: "0.375rem",
-                      border: isSelected ? "2px solid #3b82f6" : "1px solid #d1d5db",
-                      background: isSelected ? "#eff6ff" : "#fff",
-                      cursor: answered.has(currentQuestion.question_id) ? "default" : "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    {isSelected && <span style={{ color: "#3b82f6" }}>&#10003;</span>}
-                    {option}
-                    {isSelected && (
-                      <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: "#3b82f6" }}>
-                        Answer recorded
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+        <div className="border-b border-zinc-200/80 px-4 py-3 sm:px-5 dark:border-zinc-700">
+          <div className="flex items-center justify-between text-xs font-medium text-zinc-500 dark:text-zinc-400">
+            <span>
+              {allAnswered
+                ? "Ready to submit"
+                : `Question ${currentIndex + 1} of ${questionCount}`}
+            </span>
+            <span>{answeredCount} answered</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+            <div
+              className="h-full rounded-full bg-zinc-800 transition-[width] duration-300 motion-reduce:transition-none dark:bg-zinc-100"
+              style={{ width: `${(answeredCount / questions.length) * 100}%` }}
+            />
+          </div>
         </div>
-      ) : (
-        <div>
-          <h3 style={{ marginBottom: "1rem" }}>Quiz Summary</h3>
-          <p style={{ marginBottom: "1rem", color: "#374151" }}>
-            You answered all {total_questions} questions.
-          </p>
-          <ul style={{ listStyle: "none", padding: 0, marginBottom: "1.5rem" }}>
-            {questions.map((q, idx) => (
-              <li
-                key={q.question_id}
-                style={{
-                  padding: "0.75rem 1rem",
-                  borderRadius: "0.375rem",
-                  border: "1px solid #d1d5db",
-                  marginBottom: "0.5rem",
-                  background: "#f9fafb",
-                }}
-              >
-                <span style={{ fontWeight: 600 }}>Q{idx + 1}:</span>{" "}
-                <span style={{ color: "#6b7280", fontSize: "0.875rem" }}>{q.text}</span>
-                <br />
-                <span style={{ fontSize: "0.875rem" }}>
-                  Your answer:{" "}
-                  <strong>{answers[q.question_id]}</strong>{" "}
-                  <span style={{ color: "#3b82f6" }}>&#10003;</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <button
-            onClick={handleSubmit}
-            style={{
-              background: "#3b82f6",
-              color: "#fff",
-              padding: "0.75rem 1.5rem",
-              borderRadius: "0.375rem",
-              border: "none",
-              fontWeight: 600,
-              cursor: "pointer",
-              fontSize: "1rem",
+
+        {allAnswered && !editingAnswer ? (
+          <QuizSummary
+            questions={questions}
+            answers={answers}
+            onEdit={(index) => {
+              setCurrentIndex(index);
+              setEditingAnswer(true);
             }}
-          >
-            Submit Quiz
-          </button>
-        </div>
-      )}
+            onSubmit={() => onSubmit(answers)}
+          />
+        ) : (
+          <div className="p-4 sm:p-5">
+            <fieldset>
+              <legend className="text-base font-semibold leading-6 text-zinc-950 dark:text-zinc-50">
+                {currentQuestion.text}
+              </legend>
+              <div className="mt-4 grid gap-2.5">
+                {currentQuestion.options.map((option, index) => {
+                  const selected =
+                    answers[currentQuestion.question_id] === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() =>
+                        handleOptionClick(currentQuestion.question_id, option)
+                      }
+                      className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-800 dark:focus-visible:outline-zinc-200 ${
+                        selected
+                          ? "border-zinc-800 bg-zinc-100 text-zinc-950 dark:border-zinc-200 dark:bg-zinc-800 dark:text-zinc-50"
+                          : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800/70"
+                      }`}
+                    >
+                      <span
+                        className={`flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                          selected
+                            ? "border-zinc-800 bg-zinc-800 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-950"
+                            : "border-zinc-300 text-zinc-500 dark:border-zinc-600 dark:text-zinc-400"
+                        }`}
+                      >
+                        {String.fromCharCode(65 + index)}
+                      </span>
+                      <span className="pt-0.5 leading-5">{option}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <div className="mt-5 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                className="button-secondary"
+                disabled={currentIndex === 0}
+                onClick={() => setCurrentIndex((index) => index - 1)}
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                className="button-primary"
+                disabled={answers[currentQuestion.question_id] === undefined}
+                onClick={handleContinue}
+              >
+                {allAnswered ? "Save answer" : "Continue"}
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function QuizSummary({
+  questions,
+  answers,
+  onEdit,
+  onSubmit,
+}: {
+  questions: QuizQuestion[];
+  answers: Record<string, string>;
+  onEdit: (index: number) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="p-4 sm:p-5">
+      <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
+        Review your answers
+      </h2>
+      <p className="muted mt-1">You can edit an answer before submitting.</p>
+      <ol className="mt-4 grid gap-2">
+        {questions.map((question, index) => (
+          <li key={question.question_id}>
+            <button
+              type="button"
+              onClick={() => onEdit(index)}
+              className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-left transition-colors hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-800 dark:border-zinc-700 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 dark:focus-visible:outline-zinc-200"
+            >
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-semibold text-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">
+                {index + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  {question.text}
+                </span>
+                <span className="mt-0.5 block truncate text-xs text-zinc-500 dark:text-zinc-400">
+                  {answers[question.question_id]}
+                </span>
+              </span>
+              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                Edit
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+      <button type="button" className="button-primary mt-5 w-full" onClick={onSubmit}>
+        Submit quiz
+      </button>
     </div>
   );
 }
@@ -184,79 +235,115 @@ export function QuizResult({
   per_question,
   onViewProgress,
 }: QuizResultProps) {
+  const passed = percentage >= 70;
+
   return (
-    <div
-      style={{
-        fontFamily: "sans-serif",
-        maxWidth: 640,
-        margin: "0 auto",
-        padding: "1.5rem",
-      }}
-    >
-      <h2 style={{ marginBottom: "0.5rem" }}>Quiz Results</h2>
-      <p style={{ color: "#6b7280", marginBottom: "1rem" }}>Chapter: {chapter_slug}</p>
+    <main className="widget-shell">
+      <section className="surface" aria-labelledby="result-title">
+        <header className="surface-header">
+          <p className="eyebrow">Quiz complete</p>
+          <h1 id="result-title" className="title mt-1">
+            {formatSlug(chapter_slug)}
+          </h1>
+        </header>
 
-      <div
-        style={{
-          background: percentage >= 70 ? "#f0fdf4" : "#fef2f2",
-          border: `1px solid ${percentage >= 70 ? "#86efac" : "#fca5a5"}`,
-          borderRadius: "0.5rem",
-          padding: "1rem 1.5rem",
-          marginBottom: "1.5rem",
-          textAlign: "center",
-        }}
-      >
-        <p style={{ fontSize: "2rem", fontWeight: 700, margin: 0, color: percentage >= 70 ? "#16a34a" : "#dc2626" }}>
-          {score}/{total}
-        </p>
-        <p style={{ color: "#374151", marginTop: "0.25rem" }}>
-          {percentage.toFixed(1)}%
-        </p>
-      </div>
-
-      <ul style={{ listStyle: "none", padding: 0, marginBottom: "1.5rem" }}>
-        {per_question.map((result, idx) => (
-          <li
-            key={result.question_id}
-            style={{
-              padding: "0.75rem 1rem",
-              borderRadius: "0.375rem",
-              border: "1px solid #d1d5db",
-              marginBottom: "0.5rem",
-              background: result.correct ? "#f0fdf4" : "#fef2f2",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-            }}
+        <div className="p-4 sm:p-5">
+          <div
+            className={`rounded-2xl border p-5 text-center ${
+              passed
+                ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
+                : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40"
+            }`}
           >
-            <span style={{ fontWeight: 600 }}>Q{idx + 1}</span>
-            <span style={{ color: result.correct ? "#16a34a" : "#dc2626", fontSize: "1.25rem" }}>
-              {result.correct ? "✓" : "✗"}
-            </span>
-            {!result.correct && (
-              <span style={{ fontSize: "0.875rem", color: "#6b7280" }}>
-                Correct answer: <strong>{result.correct_answer}</strong>
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
+            <p className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+              {score}/{total}
+            </p>
+            <p
+              className={`mt-1 text-sm font-semibold ${
+                passed
+                  ? "text-emerald-800 dark:text-emerald-200"
+                  : "text-amber-900 dark:text-amber-200"
+              }`}
+            >
+              {percentage.toFixed(1)}% · {passed ? "Passed" : "Keep learning"}
+            </p>
+          </div>
 
-      <button
-        onClick={onViewProgress}
-        style={{
-          background: "#6b7280",
-          color: "#fff",
-          padding: "0.75rem 1.5rem",
-          borderRadius: "0.375rem",
-          border: "none",
-          fontWeight: 600,
-          cursor: "pointer",
-          fontSize: "1rem",
-        }}
-      >
-        View Progress
-      </button>
-    </div>
+          <h2 className="mt-5 text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+            Answer breakdown
+          </h2>
+          <ul className="mt-2 grid gap-2">
+            {per_question.map((result, index) => (
+              <li
+                key={result.question_id}
+                className="flex items-start gap-3 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700"
+              >
+                <ResultIcon correct={result.correct} />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                    Question {index + 1}
+                  </p>
+                  {!result.correct && (
+                    <p className="mt-0.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+                      Correct answer: {result.correct_answer}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <button
+            type="button"
+            className="button-primary mt-5 w-full"
+            onClick={onViewProgress}
+          >
+            View progress
+          </button>
+        </div>
+      </section>
+    </main>
   );
+}
+
+function QuizEmptyState({ chapterTitle }: { chapterTitle: string }) {
+  return (
+    <main className="widget-shell">
+      <section className="surface px-5 py-10 text-center">
+        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          No quiz questions available
+        </p>
+        <p className="muted mt-1">
+          {chapterTitle
+            ? `The quiz for ${chapterTitle} is not ready yet.`
+            : "This quiz is not ready yet."}
+        </p>
+      </section>
+    </main>
+  );
+}
+
+function ResultIcon({ correct }: { correct: boolean }) {
+  return (
+    <span
+      aria-label={correct ? "Correct" : "Incorrect"}
+      className={`flex size-7 shrink-0 items-center justify-center rounded-full ${
+        correct
+          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+          : "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+      }`}
+    >
+      {correct ? "✓" : "×"}
+    </span>
+  );
+}
+
+function formatSlug(slug: string): string {
+  if (!slug) {
+    return "Chapter quiz";
+  }
+  return slug
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }

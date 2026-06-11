@@ -5,12 +5,20 @@ from fastmcp.apps import AppConfig
 from ..main import mcp
 from ..client import backend
 from ..models.search import SearchResultsPanel
+from ..auth import NOAUTH_SECURITY
+from ..tool_metadata import READ_ONLY_ANNOTATIONS, output_schema
 
 
 @mcp.tool(
-    app=AppConfig(resource_uri="ui://widget/search-results.html"),
+    app=AppConfig(
+        resource_uri="ui://widget/search-results.html",
+        visibility=["model", "app"],
+    ),
+    meta={"securitySchemes": NOAUTH_SECURITY},
+    output_schema=output_schema(SearchResultsPanel),
+    annotations=READ_ONLY_ANNOTATIONS,
 )
-async def search_content(query: str = "", limit: int = 10) -> ToolResult:
+async def search_content(query: str, limit: int = 10) -> ToolResult:
     """Search course content by keyword.
 
     Args:

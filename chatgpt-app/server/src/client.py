@@ -24,6 +24,16 @@ class BackendClient:
         response.raise_for_status()
         return response.json()  # type: ignore[no-any-return]
 
+    async def put(
+        self,
+        path: str,
+        body: dict,
+        headers: dict[str, str] | None = None,
+    ) -> dict:
+        response = await self._client.put(path, json=body, headers=headers or {})
+        response.raise_for_status()
+        return response.json()  # type: ignore[no-any-return]
+
     async def aclose(self) -> None:
         await self._client.aclose()
 

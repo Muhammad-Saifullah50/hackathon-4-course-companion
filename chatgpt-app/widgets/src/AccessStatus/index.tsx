@@ -10,90 +10,113 @@ interface AccessStatusProps {
 
 export function AccessStatus({
   tier,
+  allowed,
+  resource,
   upgrade_url,
   error,
 }: AccessStatusProps) {
-  const is_premium = tier === "premium";
   if (error) {
     return <ErrorPanel error={error} />;
   }
 
-  return (
-    <div
-      style={{
-        padding: "1.5rem",
-        borderRadius: "0.5rem",
-        border: "1px solid #e5e7eb",
-        maxWidth: "24rem",
-      }}
-    >
-      <div style={{ marginBottom: "1rem" }}>
-        <span
-          style={{
-            display: "inline-block",
-            padding: "0.25rem 0.75rem",
-            borderRadius: "9999px",
-            fontSize: "0.875rem",
-            fontWeight: "600",
-            backgroundColor: is_premium ? "#dcfce7" : "#fef9c3",
-            color: is_premium ? "#15803d" : "#a16207",
-          }}
-        >
-          {is_premium ? "Premium Plan" : "Free Plan"}
-        </span>
-      </div>
+  const isPremium = tier === "premium";
 
-      {!is_premium && tier === "free" ? (
-        <div>
-          <p
-            style={{
-              fontSize: "0.875rem",
-              color: "#6b7280",
-              marginBottom: "1rem",
-            }}
+  return (
+    <main className="widget-shell max-w-xl">
+      <section className="surface p-5 sm:p-6" aria-labelledby="access-title">
+        <div className="flex items-start gap-4">
+          <div
+            className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
+              isPremium
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            }`}
           >
-            Get access to AI tutoring, hints, and personalized explanations.
-          </p>
-          {upgrade_url !== null && (
-            <a
-              href={upgrade_url}
-              style={{
-                display: "inline-block",
-                padding: "0.5rem 1.25rem",
-                backgroundColor: "#f59e0b",
-                color: "#ffffff",
-                fontWeight: "600",
-                borderRadius: "0.375rem",
-                textDecoration: "none",
-                fontSize: "0.875rem",
-              }}
-            >
-              Upgrade to Premium
-            </a>
-          )}
+            {isPremium ? <SparkIcon /> : <UserIcon />}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 id="access-title" className="title">
+                {isPremium ? "Premium access" : "Free access"}
+              </h1>
+              <span
+                className={`badge ${
+                  isPremium
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
+                    : "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                }`}
+              >
+                {isPremium ? "Premium" : "Free"}
+              </span>
+            </div>
+
+            <p className="muted mt-2">
+              {isPremium
+                ? "AI tutoring, hints, and personalized explanations are available."
+                : "Course chapters, quizzes, search, and progress tracking are included."}
+            </p>
+
+            {resource && !allowed && (
+              <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+                Premium access is required for {resource}.
+              </p>
+            )}
+
+            {!isPremium && upgrade_url && (
+              <a
+                className="button-primary mt-4"
+                href={upgrade_url}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                Upgrade to Premium
+                <ExternalLinkIcon />
+              </a>
+            )}
+
+            {isPremium && (
+              <div className="mt-4 flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                <CheckIcon />
+                Your premium benefits are active
+              </div>
+            )}
+          </div>
         </div>
-      ) : (
-        <div>
-          <p
-            style={{
-              fontSize: "0.875rem",
-              color: "#15803d",
-              fontWeight: "500",
-            }}
-          >
-            ✓ Premium Member
-          </p>
-          <p
-            style={{
-              fontSize: "0.875rem",
-              color: "#6b7280",
-              marginTop: "0.25rem",
-            }}
-          >
-            Thank you for supporting the course!
-          </p>
-        </div>
-      )}
-    </div>
+      </section>
+    </main>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg aria-hidden="true" className="size-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <circle cx="10" cy="7" r="3" />
+      <path d="M4.5 16c.7-3 2.5-4.5 5.5-4.5s4.8 1.5 5.5 4.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg aria-hidden="true" className="size-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <path d="M10 2.5c.5 4.6 2.9 7 7.5 7.5-4.6.5-7 2.9-7.5 7.5-.5-4.6-2.9-7-7.5-7.5 4.6-.5 7-2.9 7.5-7.5Z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg aria-hidden="true" className="size-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="m5 10 3.2 3.2L15 6.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg aria-hidden="true" className="size-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M11 4h5v5M9 11l7-7M15 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

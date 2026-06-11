@@ -19,6 +19,7 @@
     "BACKEND_URL": "@backend_url",
     "STYTCH_PROJECT_DOMAIN": "@stytch_project_domain",
     "STYTCH_PROJECT_ID": "@stytch_project_id",
+    "MCP_SERVER_BASE_URL": "@mcp_server_base_url",
     "UPGRADE_URL": "@upgrade_url"
   }
 }

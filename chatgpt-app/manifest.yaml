@@ -16,8 +16,6 @@ oauth:
   jwks_uri: "${STYTCH_PROJECT_DOMAIN}/.well-known/jwks.json"
   scopes:
     - openid
-    - profile
-    - email
 
 # Tools exposed to ChatGPT
 tools:

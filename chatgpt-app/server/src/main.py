@@ -1,14 +1,35 @@
-import os
 from fastmcp import FastMCP
 from fastmcp.resources import FunctionResource
-from .ui import load_widget, WIDGET_NAMES
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
-_auth = None
-if os.getenv("ENABLE_AUTH", "false").lower() == "true":
-    from .auth import auth_provider
-    _auth = auth_provider
+from .auth import SCOPES
+from .core.config import settings
+from .ui import load_widget, widget_resource_meta, WIDGET_NAMES
 
-mcp = FastMCP(name="Course Companion", auth=_auth)
+mcp = FastMCP(name="Course Companion")
+
+
+@mcp.custom_route(
+    "/.well-known/oauth-protected-resource",
+    methods=["GET", "OPTIONS"],
+)
+async def oauth_protected_resource(_: Request) -> JSONResponse:
+    base_url = settings.mcp_server_base_url.rstrip("/")
+    return JSONResponse(
+        {
+            "resource": base_url,
+            "authorization_servers": [
+                settings.stytch_project_domain.rstrip("/")
+            ],
+            "scopes_supported": SCOPES,
+        },
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        },
+    )
 
 
 def _register_widget_resources() -> None:
@@ -30,6 +51,7 @@ def _register_widget_resources() -> None:
                 uri=f"ui://widget/{name}.html",
                 name=name,
                 mime_type="text/html;profile=mcp-app",
+                meta=widget_resource_meta(),
             )
         )
 

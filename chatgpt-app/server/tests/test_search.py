@@ -29,21 +29,25 @@ async def test_search_content_returns_search_results_panel():
 
         result = await search_content("mcp")
 
-    assert result["query"] == "mcp"
-    assert result["total_matches"] == 2
-    assert len(result["results"]) == 2
-    first = result["results"][0]
+    assert result.structured_content is not None
+    assert result.structured_content["query"] == "mcp"
+    assert result.structured_content["total_matches"] == 2
+    assert len(result.structured_content["results"]) == 2
+    first = result.structured_content["results"][0]
     assert first["chapter_slug"] == "intro-to-mcp"
     assert first["chapter_title"] == "Introduction to MCP"
     assert "excerpt" in first
 
 
 @pytest.mark.asyncio
-async def test_search_content_raises_for_empty_query():
+async def test_search_content_returns_error_for_empty_query():
     from src.tools.search import search_content
 
-    with pytest.raises(ValueError, match="Search query cannot be empty"):
-        await search_content("")
+    result = await search_content("")
+
+    assert result.is_error is False
+    assert result.structured_content is not None
+    assert "No search query provided" in result.structured_content["error"]["message"]
 
 
 @pytest.mark.asyncio

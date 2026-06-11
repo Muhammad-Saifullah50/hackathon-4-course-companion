@@ -1,6 +1,7 @@
 import { build } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { rmSync, copyFileSync, mkdirSync } from "fs";
@@ -29,7 +30,7 @@ for (const widget of WIDGETS) {
 
   await build({
     root,
-    plugins: [react(), viteSingleFile()],
+    plugins: [react(), tailwindcss(), viteSingleFile()],
     build: {
       rollupOptions: {
         input: resolve(root, "src", widget.dir, "entry.html"),

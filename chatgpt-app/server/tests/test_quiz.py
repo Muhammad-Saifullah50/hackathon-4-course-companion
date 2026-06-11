@@ -1,9 +1,10 @@
 """Tests for quiz MCP tools (get_quiz, submit_quiz)."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 
+from src.auth import AuthorizedRequest
 from src.models.quiz import QuizPanel, QuizResult
 
 
@@ -12,27 +13,25 @@ SAMPLE_QUIZ_DATA = {
     "chapter_title": "Introduction to AI Agents",
     "questions": [
         {
-            "question_id": "q1",
+            "id": "q1",
             "text": "What is an AI agent?",
-            "options": ["A robot", "An autonomous software system", "A database", "A compiler"],
+            "options": [
+                {"label": "A", "text": "A robot"},
+                {"label": "B", "text": "An autonomous software system"},
+                {"label": "C", "text": "A database"},
+                {"label": "D", "text": "A compiler"},
+            ],
         },
         {
-            "question_id": "q2",
+            "id": "q2",
             "text": "Which SDK is used for Claude agents?",
-            "options": ["LangChain", "AutoGPT", "Claude Agent SDK", "Hugging Face"],
+            "options": [
+                {"label": "A", "text": "LangChain"},
+                {"label": "B", "text": "AutoGPT"},
+                {"label": "C", "text": "Claude Agent SDK"},
+                {"label": "D", "text": "Hugging Face"},
+            ],
         },
-    ],
-    "total_questions": 2,
-}
-
-SAMPLE_SUBMIT_RESULT = {
-    "chapter_slug": "intro-to-agents",
-    "score": 2,
-    "total": 2,
-    "percentage": 100.0,
-    "per_question": [
-        {"question_id": "q1", "correct": True, "correct_answer": "An autonomous software system"},
-        {"question_id": "q2", "correct": True, "correct_answer": "Claude Agent SDK"},
     ],
 }
 
@@ -41,11 +40,19 @@ SAMPLE_ANSWERS = {
     "q2": "Claude Agent SDK",
 }
 
+AUTHORIZED = AuthorizedRequest(token="test-token-123", user_id="user-123")
+
 
 @pytest.mark.asyncio
 async def test_get_quiz_returns_quiz_panel():
     """get_quiz should call the backend and return a valid QuizPanel dict."""
-    with patch("src.tools.quiz.backend") as mock_backend:
+    with (
+        patch("src.tools.quiz.backend") as mock_backend,
+        patch(
+            "src.tools.quiz.authorize_request",
+            new=AsyncMock(return_value=AUTHORIZED),
+        ),
+    ):
         mock_backend.get = AsyncMock(return_value=SAMPLE_QUIZ_DATA)
 
         from src.tools.quiz import get_quiz
@@ -55,7 +62,7 @@ async def test_get_quiz_returns_quiz_panel():
         mock_backend.get.assert_called_once_with("/quizzes/intro-to-agents")
 
         # Validate the result is a valid QuizPanel
-        panel = QuizPanel(**result)
+        panel = QuizPanel(**result.structured_content)
         assert panel.chapter_slug == "intro-to-agents"
         assert panel.chapter_title == "Introduction to AI Agents"
         assert panel.total_questions == 2
@@ -69,7 +76,13 @@ async def test_get_quiz_propagates_http_error():
     """get_quiz should propagate backend HTTP errors."""
     import httpx
 
-    with patch("src.tools.quiz.backend") as mock_backend:
+    with (
+        patch("src.tools.quiz.backend") as mock_backend,
+        patch(
+            "src.tools.quiz.authorize_request",
+            new=AsyncMock(return_value=AUTHORIZED),
+        ),
+    ):
         mock_request = MagicMock(spec=httpx.Request)
         mock_request.url = "http://backend/quizzes/missing"
         mock_response = MagicMock(spec=httpx.Response)
@@ -93,75 +106,134 @@ async def test_get_quiz_propagates_http_error():
 
 @pytest.mark.asyncio
 async def test_submit_quiz_returns_quiz_result():
-    """submit_quiz should call the backend with auth and return a valid QuizResult dict."""
-    mock_ctx = MagicMock()
-    mock_ctx.auth_token = "test-token-123"
-
-    with patch("src.tools.quiz.backend") as mock_backend:
-        mock_backend.post = AsyncMock(return_value=SAMPLE_SUBMIT_RESULT)
+    """submit_quiz should translate text answers and aggregate backend results."""
+    with (
+        patch("src.tools.quiz.backend") as mock_backend,
+        patch(
+            "src.tools.quiz.authorize_request",
+            new=AsyncMock(return_value=AUTHORIZED),
+        ),
+    ):
+        mock_backend.get = AsyncMock(return_value=SAMPLE_QUIZ_DATA)
+        mock_backend.post = AsyncMock(
+            side_effect=[
+                {
+                    "question_id": "q1",
+                    "is_correct": True,
+                    "correct_answer": "B",
+                    "explanation": "Agents act autonomously.",
+                },
+                {
+                    "question_id": "q2",
+                    "is_correct": False,
+                    "correct_answer": "C",
+                    "explanation": "The expected SDK is Claude Agent SDK.",
+                },
+            ]
+        )
+        mock_backend.put = AsyncMock(return_value={})
 
         from src.tools.quiz import submit_quiz
 
         result = await submit_quiz(
             chapter_slug="intro-to-agents",
-            answers=SAMPLE_ANSWERS,
-            ctx=mock_ctx,
+            answers={
+                "q1": "An autonomous software system",
+                "q2": "AutoGPT",
+            },
         )
 
-        mock_backend.post.assert_called_once_with(
-            "/quizzes/intro-to-agents/submit",
-            body=SAMPLE_ANSWERS,
+        mock_backend.get.assert_awaited_once_with("/quizzes/intro-to-agents")
+        assert mock_backend.post.await_args_list == [
+            call(
+                "/quizzes/intro-to-agents/submit",
+                body={"question_id": "q1", "selected_answer": "B"},
+                headers={"Authorization": "Bearer test-token-123"},
+            ),
+            call(
+                "/quizzes/intro-to-agents/submit",
+                body={"question_id": "q2", "selected_answer": "B"},
+                headers={"Authorization": "Bearer test-token-123"},
+            ),
+        ]
+        mock_backend.put.assert_awaited_once_with(
+            "/users/user-123/progress?chapter_slug=intro-to-agents",
+            body={"quiz_score": 50},
             headers={"Authorization": "Bearer test-token-123"},
         )
 
-        # Validate the result is a valid QuizResult
-        quiz_result = QuizResult(**result)
+        quiz_result = QuizResult(**result.structured_content)
         assert quiz_result.chapter_slug == "intro-to-agents"
-        assert quiz_result.score == 2
+        assert quiz_result.score == 1
         assert quiz_result.total == 2
-        assert quiz_result.percentage == 100.0
+        assert quiz_result.percentage == 50.0
         assert len(quiz_result.per_question) == 2
         assert quiz_result.per_question[0].correct is True
-        assert quiz_result.per_question[1].correct is True
+        assert quiz_result.per_question[0].correct_answer == "An autonomous software system"
+        assert quiz_result.per_question[1].correct is False
+        assert quiz_result.per_question[1].correct_answer == "Claude Agent SDK"
+        assert result.meta == {}
 
 
 @pytest.mark.asyncio
-async def test_submit_quiz_without_token_sends_no_auth_header():
-    """submit_quiz should call backend without auth header when no token is available."""
-    mock_ctx = MagicMock(spec=[])  # no attributes at all
-
-    with patch("src.tools.quiz.backend") as mock_backend:
-        mock_backend.post = AsyncMock(return_value=SAMPLE_SUBMIT_RESULT)
+@pytest.mark.parametrize(
+    ("answers", "expected_message"),
+    [
+        ({"q1": "A robot"}, "Missing: q2"),
+        ({**SAMPLE_ANSWERS, "q3": "Unknown"}, "Unknown quiz question IDs: q3"),
+        (
+            {"q1": "Not an option", "q2": "Claude Agent SDK"},
+            "Answer for q1 is not one of the available options.",
+        ),
+    ],
+)
+async def test_submit_quiz_returns_structured_validation_errors(
+    answers: dict[str, str], expected_message: str
+):
+    """Invalid batch answers should return a widget error without grading."""
+    with (
+        patch("src.tools.quiz.backend") as mock_backend,
+        patch(
+            "src.tools.quiz.authorize_request",
+            new=AsyncMock(return_value=AUTHORIZED),
+        ),
+    ):
+        mock_backend.get = AsyncMock(return_value=SAMPLE_QUIZ_DATA)
+        mock_backend.post = AsyncMock()
+        mock_backend.put = AsyncMock()
 
         from src.tools.quiz import submit_quiz
 
-        await submit_quiz(
+        result = await submit_quiz(
             chapter_slug="intro-to-agents",
-            answers=SAMPLE_ANSWERS,
-            ctx=mock_ctx,
+            answers=answers,
         )
 
-        mock_backend.post.assert_called_once_with(
-            "/quizzes/intro-to-agents/submit",
-            body=SAMPLE_ANSWERS,
-            headers={},
-        )
+        assert result.is_error is True
+        assert result.meta == {}
+        assert expected_message in result.structured_content["error"]["message"]
+        mock_backend.post.assert_not_awaited()
+        mock_backend.put.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_submit_quiz_propagates_http_error():
-    """submit_quiz should propagate backend HTTP errors."""
+async def test_submit_quiz_backend_401_returns_configuration_error():
+    """A backend auth mismatch should not restart the OAuth flow."""
     import httpx
 
-    mock_ctx = MagicMock()
-    mock_ctx.auth_token = "test-token"
-
-    with patch("src.tools.quiz.backend") as mock_backend:
+    with (
+        patch("src.tools.quiz.backend") as mock_backend,
+        patch(
+            "src.tools.quiz.authorize_request",
+            new=AsyncMock(return_value=AUTHORIZED),
+        ),
+    ):
         mock_request = MagicMock(spec=httpx.Request)
         mock_request.url = "http://backend/quizzes/intro-to-agents/submit"
         mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 401
 
+        mock_backend.get = AsyncMock(return_value=SAMPLE_QUIZ_DATA)
         mock_backend.post = AsyncMock(
             side_effect=httpx.HTTPStatusError(
                 "401 Unauthorized",
@@ -169,14 +241,64 @@ async def test_submit_quiz_propagates_http_error():
                 response=mock_response,
             )
         )
+        mock_backend.put = AsyncMock()
 
         from src.tools.quiz import submit_quiz
 
-        with pytest.raises(httpx.HTTPStatusError) as exc_info:
-            await submit_quiz(
-                chapter_slug="intro-to-agents",
-                answers=SAMPLE_ANSWERS,
-                ctx=mock_ctx,
-            )
+        result = await submit_quiz(
+            chapter_slug="intro-to-agents",
+            answers=SAMPLE_ANSWERS,
+        )
 
-        assert exc_info.value.response.status_code == 401
+        assert result.is_error is True
+        assert "mcp/www_authenticate" not in result.meta
+        assert "ui" not in result.meta
+        assert "openai/outputTemplate" not in result.meta
+        assert result.structured_content["error"]["message"] == (
+            "Backend authentication configuration error."
+        )
+        mock_backend.put.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_submit_quiz_progress_401_returns_configuration_error():
+    """A rejected progress write returns an app-only structured error."""
+    import httpx
+
+    with (
+        patch("src.tools.quiz.backend") as mock_backend,
+        patch(
+            "src.tools.quiz.authorize_request",
+            new=AsyncMock(return_value=AUTHORIZED),
+        ),
+    ):
+        mock_backend.get = AsyncMock(return_value=SAMPLE_QUIZ_DATA)
+        mock_backend.post = AsyncMock(
+            return_value={
+                "question_id": "q1",
+                "is_correct": True,
+                "correct_answer": "B",
+            }
+        )
+        request = httpx.Request("PUT", "http://backend/users/user-123/progress")
+        response = httpx.Response(401, request=request)
+        mock_backend.put = AsyncMock(
+            side_effect=httpx.HTTPStatusError(
+                "401 Unauthorized",
+                request=request,
+                response=response,
+            )
+        )
+
+        from src.tools.quiz import submit_quiz
+
+        result = await submit_quiz(
+            chapter_slug="intro-to-agents",
+            answers=SAMPLE_ANSWERS,
+        )
+
+    assert result.is_error is True
+    assert result.meta == {}
+    assert result.structured_content["error"]["message"] == (
+        "Backend authentication configuration error."
+    )

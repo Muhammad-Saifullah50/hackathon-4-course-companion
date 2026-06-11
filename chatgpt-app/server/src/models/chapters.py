@@ -7,6 +7,10 @@ class ChapterSummary(BaseModel):
     order: int
 
 
+class ChapterListPanel(BaseModel):
+    chapters: list[ChapterSummary]
+
+
 class ChapterPanel(BaseModel):
     slug: str
     title: str
