@@ -1,5 +1,5 @@
 /**
- * Widget prop type interfaces for Course Companion ChatGPT visual panels.
+ * Widget prop type interfaces for Claude Teacher ChatGPT visual panels.
  * Each widget corresponds to one or two MCP tools.
  */
 

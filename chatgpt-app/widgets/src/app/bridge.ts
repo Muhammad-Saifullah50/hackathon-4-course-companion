@@ -97,7 +97,7 @@ export class McpAppsBridge {
 
   private async initialize(): Promise<void> {
     await this.request("ui/initialize", {
-      appInfo: { name: "course-companion-widgets", version: "1.0.0" },
+      appInfo: { name: "claudeteacher-widgets", version: "1.0.0" },
       appCapabilities: {},
       protocolVersion: "2026-01-26",
     });

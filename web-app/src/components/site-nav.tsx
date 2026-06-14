@@ -44,7 +44,7 @@ export function SiteNav({ session }: { session: AuthSession | null }) {
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--emerald)] text-white">
             <BookOpen size={14} />
           </span>
-          <span>Course<span className="text-[var(--emerald)]">Companion</span></span>
+          <span>Claude<span className="text-[var(--emerald)]">Teacher</span></span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">

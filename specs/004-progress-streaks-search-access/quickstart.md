@@ -160,7 +160,7 @@ Key test files for this feature:
 | `R2_ACCOUNT_ID` | Yes | Cloudflare account ID |
 | `R2_ACCESS_KEY_ID` | Yes | R2 API token key ID |
 | `R2_SECRET_ACCESS_KEY` | Yes | R2 API token secret |
-| `R2_BUCKET_NAME` | Yes | Default: `course-companion-content` |
+| `R2_BUCKET_NAME` | Yes | Default: `claudeteacher-content` |
 | `STYTCH_PROJECT_ID` | Yes | From Stytch dashboard |
 | `STYTCH_SECRET` | Yes | From Stytch dashboard |
 

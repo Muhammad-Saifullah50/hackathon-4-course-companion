@@ -1,6 +1,6 @@
-# Course Companion - Figma Make Specification
+# Claude Teacher - Figma Make Specification
 
-Design a responsive web LMS for **Course Companion**, an **AI Agent Development
+Design a responsive web LMS for **Claude Teacher**, an **AI Agent Development
 with Claude Agent SDK** course. Use reusable components, Auto Layout, variants,
 and high-fidelity desktop/mobile screens. It should feel calm, technical,
 editorial, and credible, not like a generic LMS, chatbot, or children's app.
@@ -82,7 +82,7 @@ dates/scores/actions. Streak days use UTC. Do not invent history or badges.
 session expiry, and Sign out. Premium may say “Coming later”; no checkout.
 
 **Authentication:** Sign in/up, reset, callback, sign-out, and error screens.
-Reserve Stytch areas for Google/email. Add “Connect Course Companion” consent
+Reserve Stytch areas for Google/email. Add “Connect Claude Teacher” consent
 listing profile, progress, and score permissions.
 
 ## States and Prototype

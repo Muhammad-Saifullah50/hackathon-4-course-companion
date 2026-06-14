@@ -1,4 +1,4 @@
-# Course Companion Web App
+# Claude Teacher Web App
 
 Next.js frontend for the standalone LMS and the shared Stytch authentication
 surface used by the ChatGPT Connected App.

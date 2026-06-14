@@ -21,7 +21,7 @@
 
 ### User Story 1 — Browse and Read Course Chapters (Priority: P1)
 
-A learner opens ChatGPT, connects the Course Companion app, and asks about an AI Agent Development topic. ChatGPT retrieves the relevant chapter and displays its content in an interactive panel inside the chat. The learner can navigate to the next or previous chapter, and jump to the quiz for that chapter — all without leaving ChatGPT.
+A learner opens ChatGPT, connects the Claude Teacher app, and asks about an AI Agent Development topic. ChatGPT retrieves the relevant chapter and displays its content in an interactive panel inside the chat. The learner can navigate to the next or previous chapter, and jump to the quiz for that chapter — all without leaving ChatGPT.
 
 **Why this priority**: Content delivery is the core value proposition. Every other feature depends on chapters being accessible. Unauthenticated users can use this without signing in.
 

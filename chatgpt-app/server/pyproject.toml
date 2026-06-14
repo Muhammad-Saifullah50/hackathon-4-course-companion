@@ -1,7 +1,7 @@
 [project]
-name = "course-companion-mcp"
+name = "claudeteacher-mcp"
 version = "0.1.0"
-description = "Course Companion ChatGPT App — MCP server"
+description = "Claude Teacher ChatGPT App — MCP server"
 requires-python = ">=3.12"
 dependencies = [
     "fastmcp>=2.0",

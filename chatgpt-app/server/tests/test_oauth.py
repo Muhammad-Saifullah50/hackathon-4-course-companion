@@ -19,10 +19,10 @@ def test_protected_resource_url_is_on_origin_root():
 
     with patch(
         "src.auth.settings.mcp_server_base_url",
-        "https://course-companion.example/mcp",
+        "https://claudeteacher.example/mcp",
     ):
         assert protected_resource_url() == (
-            "https://course-companion.example/"
+            "https://claudeteacher.example/"
             ".well-known/oauth-protected-resource"
         )
 

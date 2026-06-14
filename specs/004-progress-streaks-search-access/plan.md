@@ -5,7 +5,7 @@
 
 ## Summary
 
-Adds four deterministic backend capabilities to the FastAPI Course Companion: (1) chapter completion tracking with upsert semantics, (2) daily streak calculation with UTC day boundaries, (3) in-memory keyword search over the pre-warmed chapter cache, and (4) an access tier check endpoint. All logic is rule-based — zero LLM calls, compliant with Phase 1 constraints.
+Adds four deterministic backend capabilities to the FastAPI Claude Teacher: (1) chapter completion tracking with upsert semantics, (2) daily streak calculation with UTC day boundaries, (3) in-memory keyword search over the pre-warmed chapter cache, and (4) an access tier check endpoint. All logic is rule-based — zero LLM calls, compliant with Phase 1 constraints.
 
 ## Technical Context
 

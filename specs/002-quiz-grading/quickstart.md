@@ -46,7 +46,7 @@ Quiz files go in your R2 bucket at `quizzes/{chapter_slug}.json`.
 
 Upload via wrangler:
 ```bash
-npx wrangler r2 object put course-companion-content/quizzes/mcp-introduction.json \
+npx wrangler r2 object put claudeteacher-content/quizzes/mcp-introduction.json \
   --file=content/quizzes/mcp-introduction.json
 ```
 
@@ -108,7 +108,7 @@ For local development without R2, set these in `backend/.env`:
 R2_ACCOUNT_ID=dev
 R2_ACCESS_KEY_ID=dev
 R2_SECRET_ACCESS_KEY=dev
-R2_BUCKET_NAME=course-companion-content
+R2_BUCKET_NAME=claudeteacher-content
 USE_LOCAL_CONTENT=true
 LOCAL_CONTENT_PATH=../content
 ```

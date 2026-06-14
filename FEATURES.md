@@ -1,4 +1,4 @@
-# Phase 1 Features — Course Companion FTE
+# Phase 1 Features — Claude Teacher FTE
 
 **Constraint**: Backend must have ZERO LLM calls. All reasoning is handled by ChatGPT via OpenAI Apps SDK (MCP). Violation is an immediate hackathon disqualifier.
 

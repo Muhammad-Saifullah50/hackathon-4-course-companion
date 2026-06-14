@@ -54,7 +54,7 @@ Served by the MCP server at `GET /.well-known/oauth-protected-resource`. Not sto
 | `resource` | Canonical MCP server URI (from env: `MCP_SERVER_URL`) |
 | `authorization_servers` | `[STYTCH_AS_URL]` |
 | `scopes_supported` | `["chapter.read", "quiz.write", "progress.read", "progress.write"]` |
-| `resource_name` | `"Course Companion MCP Server"` |
+| `resource_name` | `"Claude Teacher MCP Server"` |
 | `bearer_methods_supported` | `["header"]` |
 
 ---

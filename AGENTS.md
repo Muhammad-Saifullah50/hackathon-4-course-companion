@@ -1,4 +1,4 @@
-# Course Companion FTE — Agent Context
+# Claude Teacher FTE — Agent Context
 
 Universal project guidelines for all AI coding agents (Claude Code, Gemini CLI, Cursor, OpenCode, etc.).
 
@@ -6,7 +6,7 @@ Universal project guidelines for all AI coding agents (Claude Code, Gemini CLI, 
 
 ## Project Overview
 
-**Course Companion FTE** is a Digital Full-Time Equivalent educational tutor built for Panaversity Hackathon IV. It delivers AI Agent Development course content via two frontends:
+**Claude Teacher FTE** is a Digital Full-Time Equivalent educational tutor built for Panaversity Hackathon IV. It delivers AI Agent Development course content via two frontends:
 
 1. **ChatGPT App** (Phase 1 & 2) — Conversational tutoring inside ChatGPT via OpenAI Apps SDK (MCP). Backend is deterministic in Phase 1 (zero LLM calls). Phase 2 adds premium hybrid features.
 2. **Web App** (Phase 3) — Standalone Next.js LMS dashboard with full features.
@@ -33,7 +33,7 @@ Both frontends share **one FastAPI backend**. The course topic is **AI Agent Dev
 ## Directory Structure
 
 ```
-hackathon-4-course-companion/
+hackathon-4-claudeteacher/
 ├── backend/                  # FastAPI backend (all phases)
 │   ├── src/
 │   │   ├── main.py           # FastAPI app entrypoint
@@ -153,7 +153,7 @@ DATABASE_URL=postgresql+asyncpg://...
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=course-companion-content
+R2_BUCKET_NAME=claudeteacher-content
 
 # Phase 2 only
 ANTHROPIC_API_KEY=

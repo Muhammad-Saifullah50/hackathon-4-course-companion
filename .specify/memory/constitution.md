@@ -1,4 +1,4 @@
-# Course Companion FTE — Project Constitution
+# Claude Teacher FTE — Project Constitution
 
 ## I. Architecture Principles
 

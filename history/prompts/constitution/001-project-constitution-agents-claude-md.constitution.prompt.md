@@ -25,7 +25,7 @@ tests:
 
 ## Prompt
 
-User shared the Hackathon IV document (Course Companion FTE — Panaversity Agent Factory) and a breakdown from Opus 4.8. User confirmed: course topic = AI Agent Development, goal = discuss then write constitution + AGENTS.md + CLAUDE.md, has completed prerequisites (hackathons I–III).
+User shared the Hackathon IV document (Claude Teacher FTE — Panaversity Agent Factory) and a breakdown from Opus 4.8. User confirmed: course topic = AI Agent Development, goal = discuss then write constitution + AGENTS.md + CLAUDE.md, has completed prerequisites (hackathons I–III).
 
 User clarified that CLAUDE.md and AGENTS.md are for coding agents (Claude Code, Gemini CLI, etc.) that BUILD the project — not for the FTE tutor itself. Shared the textbook chapter on CLAUDE.md/AGENTS.md and the project constitution lesson to establish correct understanding.
 

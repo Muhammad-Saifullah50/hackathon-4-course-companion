@@ -1,6 +1,6 @@
 # ChatGPT App Development — Python MCP SDK Research
 
-> Research compiled for Course Companion FTE — ChatGPT App (Phase 1 & 2)
+> Research compiled for Claude Teacher FTE — ChatGPT App (Phase 1 & 2)
 > Date: 2026-06-03
 
 ---
@@ -29,7 +29,7 @@ ChatGPT (model + iframe host)          Next.js Web App (Phase 3)
 
 **Project structure:**
 ```
-hackathon-4-course-companion/
+hackathon-4-claudeteacher/
 ├── backend/              # FastAPI REST API — business logic, DB, R2
 │   └── src/routers/      # content, quizzes, progress, search, access
 │
@@ -59,10 +59,10 @@ FastMCP is the idiomatic Python layer over the MCP Python SDK. It uses decorator
 import httpx
 from fastmcp import FastMCP
 
-BACKEND_URL = "https://api.course-companion.example.com"  # env var in practice
+BACKEND_URL = "https://api.claudeteacher.example.com"  # env var in practice
 
-mcp = FastMCP(name="course-companion", version="1.0.0", instructions="""
-You are a Course Companion tutor for AI Agent Development.
+mcp = FastMCP(name="claudeteacher", version="1.0.0", instructions="""
+You are a Claude Teacher tutor for AI Agent Development.
 Always call get_chapter before explaining a topic.
 For quizzes, call get_quiz first, then grade with submit_quiz_answer.
 Use get_progress to motivate the user with their streak data.
@@ -167,9 +167,9 @@ async def chapter_reader_widget() -> TextResourceContents:
         _meta={
             "ui": {
                 "prefersBorder": True,
-                "domain": "https://course-companion.example.com",
+                "domain": "https://claudeteacher.example.com",
                 "csp": {
-                    "connectDomains": ["https://api.course-companion.example.com"],
+                    "connectDomains": ["https://api.claudeteacher.example.com"],
                     "resourceDomains": ["https://cdn.tailwindcss.com"],
                 }
             }
@@ -205,7 +205,7 @@ Widgets run in a double-iframe sandbox with strict CSP. Rules:
 
 ### Recommended widget stack
 
-For Course Companion, use **React + `@openai/apps-sdk-ui`** for all widgets.
+For Claude Teacher, use **React + `@openai/apps-sdk-ui`** for all widgets.
 See Section 12 for the full React widget setup. Vanilla JS + Tailwind CDN is a fallback for trivial widgets only.
 
 ```html
@@ -368,9 +368,9 @@ Condense `chatgpt-app/skills/*.md` into the instructions string:
 
 ```python
 mcp = FastMCP(
-    name="course-companion",
+    name="claudeteacher",
     instructions="""
-You are a Course Companion — an AI tutor for the AI Agent Development course.
+You are a Claude Teacher — an AI tutor for the AI Agent Development course.
 
 TOOL SEQUENCES:
 - To explain a topic: call get_chapter first, then explain using the content returned.
@@ -393,7 +393,7 @@ Keep the first 512 characters self-contained — that's what ChatGPT prioritizes
 
 ---
 
-## 9. Phase 1 Tool List for Course Companion
+## 9. Phase 1 Tool List for Claude Teacher
 
 | Tool | Annotations | Widget |
 |---|---|---|
@@ -441,7 +441,7 @@ Both services need separate HTTPS endpoints:
 
 ```bash
 # chatgpt-app env vars
-BACKEND_URL=https://api.course-companion.vercel.app
+BACKEND_URL=https://api.claudeteacher.vercel.app
 ```
 
 The MCP server is stateless — all state lives in Neon/R2 via the backend. So Vercel serverless works fine for the hackathon.
@@ -724,7 +724,7 @@ auth_provider = BearerAuthProvider(
     audience=os.environ["STYTCH_PROJECT_ID"],
 )
 
-mcp = FastMCP(name="course-companion", auth=auth_provider)
+mcp = FastMCP(name="claudeteacher", auth=auth_provider)
 ```
 
 Get the validated token inside any tool:
@@ -782,8 +782,8 @@ async def get_chapter(slug: str) -> dict:
 # chatgpt-app/ env vars
 STYTCH_PROJECT_DOMAIN=https://<project-id>.api.stytch.com
 STYTCH_PROJECT_ID=project-live-xxxxxxxx
-BACKEND_URL=https://api.course-companion.vercel.app
-MCP_SERVER_BASE_URL=https://mcp.course-companion.vercel.app  # for PRM advertising
+BACKEND_URL=https://api.claudeteacher.vercel.app
+MCP_SERVER_BASE_URL=https://mcp.claudeteacher.vercel.app  # for PRM advertising
 ```
 
 ---

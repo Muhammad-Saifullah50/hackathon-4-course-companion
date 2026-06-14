@@ -28,16 +28,27 @@ async function authenticate(token: string): Promise<AuthSession | null> {
   return (await response.json()) as AuthSession;
 }
 
-export const getOptionalSession = cache(async (): Promise<AuthSession | null> => {
+interface ServerAuthContext {
+  session: AuthSession | null;
+  token: string | null;
+}
+
+const getServerAuthContext = cache(async (): Promise<ServerAuthContext> => {
   const token = await readSessionToken();
-  return token ? authenticate(token) : null;
+  return {
+    session: token ? await authenticate(token) : null,
+    token,
+  };
+});
+
+export const getOptionalSession = cache(async (): Promise<AuthSession | null> => {
+  return (await getServerAuthContext()).session;
 });
 
 export const verifySession = cache(async (): Promise<AuthSession> => {
-  const token = await readSessionToken();
+  const { session, token } = await getServerAuthContext();
   if (!token) redirect("/login");
 
-  const session = await authenticate(token);
   if (!session) {
     redirect("/api/auth/logout?return_to=%2Flogin");
   }
@@ -45,8 +56,8 @@ export const verifySession = cache(async (): Promise<AuthSession> => {
 });
 
 export async function getServerSessionToken(): Promise<string> {
-  await verifySession();
-  const token = await readSessionToken();
+  const { session, token } = await getServerAuthContext();
   if (!token) redirect("/login");
+  if (!session) redirect("/api/auth/logout?return_to=%2Flogin");
   return token;
 }

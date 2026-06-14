@@ -3,8 +3,11 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   AccountSkeleton,
+  AccountCardSkeleton,
   BrandedLoader,
   DashboardSkeleton,
+  ProgressBreakdownSkeleton,
+  ProgressStatsSkeleton,
   Spinner,
 } from "./loading-ui";
 
@@ -20,8 +23,29 @@ describe("loading UI", () => {
   });
 
   it("renders account-shaped loading content", () => {
-    render(<AccountSkeleton />);
+    render(
+      <>
+        <AccountSkeleton />
+        <AccountCardSkeleton />
+      </>,
+    );
     expect(screen.getByLabelText("Loading account")).toBeInTheDocument();
+    expect(screen.getByLabelText("Loading account details")).toBeInTheDocument();
+  });
+
+  it("renders independent progress loading regions", () => {
+    render(
+      <>
+        <ProgressStatsSkeleton />
+        <ProgressBreakdownSkeleton />
+      </>,
+    );
+    expect(
+      screen.getByLabelText("Loading progress statistics"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Loading chapter progress"),
+    ).toBeInTheDocument();
   });
 
   it("announces transition and inline loaders", () => {

@@ -25,7 +25,7 @@
 - [X] T004 [P] Create chatgpt-app/widgets/tsconfig.json with strict mode, target ES2022, jsx react-jsx
 - [X] T005 [P] Create chatgpt-app/widgets/vite.config.ts configured for library mode (outputs ES module bundle)
 - [X] T006 [P] Create chatgpt-app/widgets/src/ directory with ChapterList/, ChapterReader/, QuizPanel/, ProgressDashboard/, SearchResults/, AccessStatus/ subdirectories
-- [X] T007 [P] Create chatgpt-app/manifest.yaml skeleton with app name "Course Companion", description, placeholder tool list, and OAuth stanza pointing to Stytch Connected Apps
+- [X] T007 [P] Create chatgpt-app/manifest.yaml skeleton with app name "Claude Teacher", description, placeholder tool list, and OAuth stanza pointing to Stytch Connected Apps
 
 ---
 

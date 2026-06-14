@@ -112,7 +112,7 @@ export function LandingPage({ chapters }: { chapters: ChapterSummary[] }) {
         <h2 className="text-2xl font-semibold">Save your progress</h2>
         <p className="muted mx-auto mt-3 max-w-xl">
           One free account keeps completion, quiz scores, and streaks in sync
-          across the web and Course Companion inside ChatGPT.
+          across the web and Claude Teacher inside ChatGPT.
         </p>
         <Link href="/signup" className="button-primary mt-6">
           Create free account

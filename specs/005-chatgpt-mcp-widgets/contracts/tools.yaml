@@ -1,8 +1,8 @@
 openapi: "3.1.0"
 info:
-  title: Course Companion MCP Tools
+  title: Claude Teacher MCP Tools
   description: >
-    OpenAPI-style schema for the 7 MCP tools exposed by the Course Companion
+    OpenAPI-style schema for the 7 MCP tools exposed by the Claude Teacher
     ChatGPT App. Each tool maps to one FastAPI backend endpoint.
     Public tools require no auth. Protected tools require a Stytch Bearer token.
   version: "1.0.0"

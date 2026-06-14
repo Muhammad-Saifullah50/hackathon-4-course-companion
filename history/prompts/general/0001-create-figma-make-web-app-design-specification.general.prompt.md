@@ -24,7 +24,7 @@ tests:
 
 ## Prompt
 
-Generate a very detailed design specification for the Course Companion web app
+Generate a very detailed design specification for the Claude Teacher web app
 that can be given to Figma Make, based on project knowledge and the backend
 code.
 

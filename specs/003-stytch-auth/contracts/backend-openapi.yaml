@@ -1,6 +1,6 @@
 openapi: "3.1.0"
 info:
-  title: Course Companion API — Auth Endpoints
+  title: Claude Teacher API — Auth Endpoints
   version: "1.0.0"
 
 components:

@@ -127,6 +127,42 @@ export function DashboardSkeleton() {
   );
 }
 
+export function DashboardGreetingSkeleton() {
+  return <Skeleton className="h-8 w-64" />;
+}
+
+export function DashboardLearningSkeleton() {
+  return (
+    <div className="grid gap-5" aria-label="Loading learning path">
+      <section className="surface-card p-6">
+        <Skeleton className="h-3 w-32" />
+        <Skeleton className="mt-5 h-7 w-3/4" />
+        <Skeleton className="mt-3 h-4 w-full" />
+        <Skeleton className="mt-6 h-11 w-40" />
+      </section>
+      <section className="surface-card grid gap-3 p-6">
+        <Skeleton className="mb-2 h-3 w-28" />
+        {Array.from({ length: 5 }, (_, index) => (
+          <Skeleton className="h-8 w-full" key={index} />
+        ))}
+      </section>
+    </div>
+  );
+}
+
+export function DashboardStatsSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 3 }, (_, index) => (
+        <section className="surface-card p-5" key={index}>
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="mt-3 h-3 w-28" />
+        </section>
+      ))}
+    </>
+  );
+}
+
 export function CourseSkeleton() {
   return (
     <div className="page-shell" aria-busy="true" aria-label="Loading course">
@@ -232,6 +268,42 @@ export function ProgressSkeleton() {
   );
 }
 
+export function ProgressStatsSkeleton() {
+  return (
+    <div className="stats-grid" aria-label="Loading progress statistics">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div className="surface-card p-5" key={index}>
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="mt-3 h-3 w-24" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ProgressBreakdownSkeleton() {
+  return (
+    <section
+      className="surface-card overflow-hidden"
+      aria-label="Loading chapter progress"
+    >
+      <div className="border-b border-[var(--border)] p-5">
+        <Skeleton className="h-5 w-40" />
+      </div>
+      {Array.from({ length: 5 }, (_, index) => (
+        <div
+          className="flex items-center gap-4 border-b border-[var(--border)] p-5 last:border-0"
+          key={index}
+        >
+          <Skeleton className="h-5 w-5 rounded-full" />
+          <Skeleton className="h-4 flex-1" />
+          <Skeleton className="h-8 w-20 rounded-lg" />
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export function AccountSkeleton() {
   return (
     <div className="mx-auto max-w-[680px] px-5 py-10" aria-busy="true" aria-label="Loading account">
@@ -257,6 +329,35 @@ export function AccountSkeleton() {
         ))}
       </div>
     </div>
+  );
+}
+
+export function AccountCardSkeleton({
+  rows = 1,
+}: {
+  rows?: number;
+}) {
+  return (
+    <section className="surface-card grid gap-3 p-6" aria-label="Loading account details">
+      {Array.from({ length: rows }, (_, index) => (
+        <Skeleton className="h-14 w-full rounded-xl" key={index} />
+      ))}
+    </section>
+  );
+}
+
+export function CourseProgressSkeleton() {
+  return <Skeleton className="h-5 w-24 rounded-full" />;
+}
+
+export function ReaderRailSkeleton() {
+  return (
+    <>
+      <Skeleton className="h-4 w-28" />
+      {Array.from({ length: 5 }, (_, index) => (
+        <Skeleton className="mt-3 h-8 w-full" key={index} />
+      ))}
+    </>
   );
 }
 

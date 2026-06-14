@@ -1,7 +1,7 @@
 {
-  "name": "course-companion-widgets",
+  "name": "claudeteacher-widgets",
   "version": "0.1.0",
-  "description": "Course Companion ChatGPT visual panel widgets",
+  "description": "Claude Teacher ChatGPT visual panel widgets",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",

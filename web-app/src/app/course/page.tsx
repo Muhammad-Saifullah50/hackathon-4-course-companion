@@ -4,24 +4,59 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { CourseProgressOverlay } from "@/components/course-progress-overlay";
+import { CourseProgressSkeleton } from "@/components/loading-ui";
+import type { ProgressResponse } from "@/lib/api-types";
 import { getOptionalSession } from "@/lib/auth-dal";
 import { getServerProgress } from "@/lib/authenticated-api";
 import { courseMeta } from "@/lib/course-meta";
 import { getChapters } from "@/lib/server-api";
 
 export const metadata: Metadata = {
-  title: "Course | Course Companion",
+  title: "Course | Claude Teacher",
   description: "Five focused chapters on building reliable AI agents.",
 };
 
+export const unstable_instant = {
+  prefetch: "runtime",
+  samples: [
+    {
+      cookies: [{ name: "stytch_session", value: null }],
+    },
+  ],
+};
+
+async function ProgressBadge({
+  progress,
+  slug,
+}: {
+  progress: Promise<ProgressResponse | null>;
+  slug: string;
+}) {
+  return <CourseProgressOverlay progress={await progress} slug={slug} />;
+}
+
+async function ViewerNotice({
+  session,
+}: {
+  session: ReturnType<typeof getOptionalSession>;
+}) {
+  if (await session) return null;
+  return (
+    <aside className="save-notice">
+      Sign in to save chapter completion, quiz scores, and your UTC learning
+      streak.
+      <Link href="/signup"> Create a free account</Link>
+    </aside>
+  );
+}
+
 export default async function CoursePage() {
-  const [chapters, session] = await Promise.all([
-    getChapters(),
-    getOptionalSession(),
-  ]);
-  const progress = session
-    ? await getServerProgress(session.user_id)
-    : null;
+  const session = getOptionalSession();
+  const progress = session.then((value) =>
+    value ? getServerProgress(value.user_id) : null,
+  );
+  const chapters = await getChapters();
+
   return (
     <div className="page-shell">
       <header className="mb-10 max-w-2xl">
@@ -41,8 +76,8 @@ export default async function CoursePage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2>{chapter.title}</h2>
-                  <Suspense>
-                    <CourseProgressOverlay
+                  <Suspense fallback={<CourseProgressSkeleton />}>
+                    <ProgressBadge
                       progress={progress}
                       slug={chapter.slug}
                     />
@@ -61,12 +96,9 @@ export default async function CoursePage() {
           );
         })}
       </div>
-      {!session && (
-        <aside className="save-notice">
-          Sign in to save chapter completion, quiz scores, and your UTC learning streak.
-          <Link href="/signup"> Create a free account</Link>
-        </aside>
-      )}
+      <Suspense fallback={null}>
+        <ViewerNotice session={session} />
+      </Suspense>
     </div>
   );
 }

@@ -8,7 +8,7 @@
 
 - Python 3.12+ with `uv` installed
 - Node.js 20+ with `npm`
-- A deployed Course Companion FastAPI backend (feature 001–004 complete)
+- A deployed Claude Teacher FastAPI backend (feature 001–004 complete)
 - Stytch project with **Connected Apps** enabled in the dashboard
 - Vercel CLI (`npm i -g vercel`)
 

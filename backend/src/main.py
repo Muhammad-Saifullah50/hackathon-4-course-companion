@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title="Course Companion API",
+    title="Claude Teacher API",
     description="Content delivery API for the AI Agent Development course",
     version="1.0.0",
     lifespan=lifespan,

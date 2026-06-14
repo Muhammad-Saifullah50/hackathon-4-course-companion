@@ -1,0 +1,1 @@
+add the prod urls to stytch dfashboard

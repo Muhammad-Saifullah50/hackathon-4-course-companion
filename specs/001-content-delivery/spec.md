@@ -3,7 +3,7 @@
 **Feature Branch**: `1-content-delivery`  
 **Created**: 2026-06-03  
 **Status**: Draft  
-**Input**: User description: "Content Delivery feature for Course Companion FTE — serves 5 Markdown course chapters (2 Claude Agent SDK, 2 MCP, 1 Agent Skills) from Cloudflare R2 via FastAPI. Uses manifest.json in R2 to define chapter order/slugs. Endpoints: list chapters, get by slug, next/prev navigation, media signed URLs. Content written by researching official docs (Claude Agent SDK, MCP, Agent Skills). Slug-based IDs. No DB for content metadata. R2 via boto3 with pydantic-settings config. Router at backend/src/routers/content.py, service at backend/src/services/content.py."
+**Input**: User description: "Content Delivery feature for Claude Teacher FTE — serves 5 Markdown course chapters (2 Claude Agent SDK, 2 MCP, 1 Agent Skills) from Cloudflare R2 via FastAPI. Uses manifest.json in R2 to define chapter order/slugs. Endpoints: list chapters, get by slug, next/prev navigation, media signed URLs. Content written by researching official docs (Claude Agent SDK, MCP, Agent Skills). Slug-based IDs. No DB for content metadata. R2 via boto3 with pydantic-settings config. Router at backend/src/routers/content.py, service at backend/src/services/content.py."
 
 ---
 

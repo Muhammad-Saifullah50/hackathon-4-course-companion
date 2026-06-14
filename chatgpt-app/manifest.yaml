@@ -1,4 +1,4 @@
-app_name: "Course Companion"
+app_name: "Claude Teacher"
 description: >
   An AI-powered tutor for the AI Agent Development course. Browse chapters,
   take quizzes, track your learning progress, search course content, and check
@@ -6,7 +6,7 @@ description: >
 version: "1.0.0"
 
 # MCP server endpoint (update after Vercel deployment)
-mcp_server_url: "https://course-companion-mcp.vercel.app/mcp"
+mcp_server_url: "https://claudeteacher-mcp.vercel.app/mcp"
 
 # OAuth — Stytch Connected Apps
 oauth:

@@ -7,7 +7,7 @@ from .auth import SCOPES
 from .core.config import settings
 from .ui import load_widget, widget_resource_meta, WIDGET_NAMES
 
-mcp = FastMCP(name="Course Companion")
+mcp = FastMCP(name="Claude Teacher")
 
 
 @mcp.custom_route(

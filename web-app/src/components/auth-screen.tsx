@@ -33,7 +33,7 @@ export function AuthScreen({ mode }: { mode: "login" | "signup" }) {
     <AuthShell
       eyebrow={mode === "signup" ? "Create your account" : "Welcome back"}
       title={mode === "signup" ? "Start learning." : "Continue learning."}
-      description="Use Google or email and password. This account works in both the web LMS and Course Companion inside ChatGPT."
+      description="Use Google or email and password. This account works in both the web LMS and Claude Teacher inside ChatGPT."
     >
       <StytchLogin config={config} presentation={authPresentation} />
     </AuthShell>

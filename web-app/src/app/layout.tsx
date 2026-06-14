@@ -13,8 +13,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Course Companion",
-  description: "Learn AI agent development with Course Companion.",
+  title: "Claude Teacher",
+  description: "Learn AI agent development with Claude Teacher.",
 };
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-          storageKey="course-companion-theme"
+          storageKey="claudeteacher-theme"
         >
           <AppProviders>
             <div className="flex min-h-screen flex-col">

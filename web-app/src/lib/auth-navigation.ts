@@ -1,5 +1,5 @@
 const DEFAULT_RETURN_TO = "/dashboard";
-const RETURN_TO_STORAGE_KEY = "course_companion_return_to";
+const RETURN_TO_STORAGE_KEY = "claudeteacher_return_to";
 
 export function safeReturnTo(value: string | null | undefined): string {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
@@ -7,8 +7,8 @@ export function safeReturnTo(value: string | null | undefined): string {
   }
 
   try {
-    const parsed = new URL(value, "https://course-companion.local");
-    if (parsed.origin !== "https://course-companion.local") {
+    const parsed = new URL(value, "https://claudeteacher.local");
+    if (parsed.origin !== "https://claudeteacher.local") {
       return DEFAULT_RETURN_TO;
     }
     return `${parsed.pathname}${parsed.search}${parsed.hash}`;

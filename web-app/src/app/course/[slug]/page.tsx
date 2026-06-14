@@ -2,12 +2,28 @@ import { ArrowLeft, ArrowRight, Clock, HelpCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
+import { ReaderRailSkeleton, Skeleton } from "@/components/loading-ui";
 import { MarkdownContent } from "@/components/markdown-content";
 import { ReadingProgress } from "@/components/reading-progress";
+import type {
+  ChapterSummary,
+  QuizPublic,
+} from "@/lib/api-types";
 import { courseMeta } from "@/lib/course-meta";
 import { extractToc, readingMinutes } from "@/lib/markdown";
 import { ApiError, getChapter, getChapters, getQuiz } from "@/lib/server-api";
+
+export const unstable_instant = {
+  prefetch: "runtime",
+  samples: [
+    {
+      cookies: [{ name: "stytch_session", value: null }],
+      params: { slug: "claude-agent-sdk-foundations" },
+    },
+  ],
+};
 
 export async function generateStaticParams() {
   const chapters = await getChapters();
@@ -22,11 +38,82 @@ export async function generateMetadata({
   const { slug } = await params;
   try {
     const chapter = await getChapter(slug);
-    return { title: `${chapter.title} | Course Companion`, description: courseMeta(slug).description };
+    return { title: `${chapter.title} | Claude Teacher`, description: courseMeta(slug).description };
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return {};
     throw error;
   }
+}
+
+async function ChapterRail({
+  chapters,
+  slug,
+}: {
+  chapters: Promise<ChapterSummary[]>;
+  slug: string;
+}) {
+  return (
+    <>
+      <Link href="/course" className="rail-back">
+        <ArrowLeft size={13} /> All chapters
+      </Link>
+      <p className="eyebrow mb-3">Course</p>
+      {(await chapters).map((item) => (
+        <Link
+          key={item.slug}
+          href={`/course/${item.slug}`}
+          data-active={item.slug === slug}
+        >
+          <span>{item.order}</span>
+          {item.title}
+        </Link>
+      ))}
+    </>
+  );
+}
+
+async function QuizQuestionCount({
+  quiz,
+}: {
+  quiz: Promise<QuizPublic>;
+}) {
+  return (
+    <span>
+      <HelpCircle size={13} /> {(await quiz).questions.length} questions
+    </span>
+  );
+}
+
+async function ChapterNavigation({
+  chapters,
+  slug,
+}: {
+  chapters: Promise<ChapterSummary[]>;
+  slug: string;
+}) {
+  const value = await chapters;
+  const index = value.findIndex((item) => item.slug === slug);
+  const previous = value[index - 1];
+  const next = value[index + 1];
+
+  return (
+    <nav className="chapter-navigation">
+      {previous ? (
+        <Link href={`/course/${previous.slug}`}>
+          <ArrowLeft size={14} /> {previous.title}
+        </Link>
+      ) : (
+        <span />
+      )}
+      {next ? (
+        <Link href={`/course/${next.slug}`}>
+          {next.title} <ArrowRight size={14} />
+        </Link>
+      ) : (
+        <span />
+      )}
+    </nav>
+  );
 }
 
 export default async function ChapterPage({
@@ -35,32 +122,27 @@ export default async function ChapterPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const chapterPromise = getChapter(slug);
+  const chapters = getChapters();
+  const quiz = getQuiz(slug);
   let chapter;
   try {
-    chapter = await getChapter(slug);
+    chapter = await chapterPromise;
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
   }
-  const [chapters, quiz] = await Promise.all([getChapters(), getQuiz(slug)]);
   const toc = extractToc(chapter.content);
   const minutes = readingMinutes(chapter.content);
-  const index = chapters.findIndex((item) => item.slug === slug);
-  const previous = chapters[index - 1];
-  const next = chapters[index + 1];
 
   return (
     <>
       <ReadingProgress />
       <div className="reader-shell">
         <aside className="reader-rail">
-          <Link href="/course" className="rail-back"><ArrowLeft size={13} /> All chapters</Link>
-          <p className="eyebrow mb-3">Course</p>
-          {chapters.map((item) => (
-            <Link key={item.slug} href={`/course/${item.slug}`} data-active={item.slug === slug}>
-              <span>{item.order}</span>{item.title}
-            </Link>
-          ))}
+          <Suspense fallback={<ReaderRailSkeleton />}>
+            <ChapterRail chapters={chapters} slug={slug} />
+          </Suspense>
         </aside>
         <main className="reader-main">
           <header className="reader-header">
@@ -69,7 +151,9 @@ export default async function ChapterPage({
             <p>{courseMeta(slug).description}</p>
             <div>
               <span><Clock size={13} /> {minutes} min read</span>
-              <span><HelpCircle size={13} /> {quiz.questions.length} questions</span>
+              <Suspense fallback={<Skeleton className="h-4 w-24" />}>
+                <QuizQuestionCount quiz={quiz} />
+              </Suspense>
             </div>
           </header>
           <MarkdownContent content={chapter.content} />
@@ -81,10 +165,16 @@ export default async function ChapterPage({
             </div>
             <Link href={`/quiz/${slug}`} className="button-primary">Take quiz <ArrowRight size={15} /></Link>
           </section>
-          <nav className="chapter-navigation">
-            {previous ? <Link href={`/course/${previous.slug}`}><ArrowLeft size={14} /> {previous.title}</Link> : <span />}
-            {next ? <Link href={`/course/${next.slug}`}>{next.title} <ArrowRight size={14} /></Link> : <span />}
-          </nav>
+          <Suspense
+            fallback={
+              <nav className="chapter-navigation">
+                <Skeleton className="h-9 w-32" />
+                <Skeleton className="h-9 w-32" />
+              </nav>
+            }
+          >
+            <ChapterNavigation chapters={chapters} slug={slug} />
+          </Suspense>
         </main>
         <aside className="toc">
           <p className="eyebrow mb-3">On this page</p>

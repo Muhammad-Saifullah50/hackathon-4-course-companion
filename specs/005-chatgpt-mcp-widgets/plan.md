@@ -5,7 +5,7 @@
 
 ## Summary
 
-Build the ChatGPT-facing layer of Course Companion: a Python FastMCP server that exposes 7 deterministic tools (chapters, quiz, progress, search, access), plus React widget bundles that render as visual panels inside ChatGPT conversations. The MCP server acts as a stateless proxy — it forwards every request to the existing FastAPI backend and returns structured panel responses. Authentication is handled by Stytch Connected Apps (OAuth 2.1), with the MCP server forwarding Bearer tokens downstream to FastAPI for validation. Zero LLM calls anywhere in this layer.
+Build the ChatGPT-facing layer of Claude Teacher: a Python FastMCP server that exposes 7 deterministic tools (chapters, quiz, progress, search, access), plus React widget bundles that render as visual panels inside ChatGPT conversations. The MCP server acts as a stateless proxy — it forwards every request to the existing FastAPI backend and returns structured panel responses. Authentication is handled by Stytch Connected Apps (OAuth 2.1), with the MCP server forwarding Bearer tokens downstream to FastAPI for validation. Zero LLM calls anywhere in this layer.
 
 ## Technical Context
 

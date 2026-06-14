@@ -41,7 +41,7 @@ async def get_chapter(slug: str) -> ChapterPanel:
 ```
 STYTCH_PROJECT_DOMAIN=https://<project-id>.api.stytch.com
 STYTCH_PROJECT_ID=<project-id>
-BACKEND_URL=https://api.course-companion.example.com
+BACKEND_URL=https://api.claudeteacher.example.com
 ```
 
 **JWKS URI**: `${STYTCH_PROJECT_DOMAIN}/.well-known/jwks.json`  

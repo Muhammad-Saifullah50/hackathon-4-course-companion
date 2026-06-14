@@ -1,6 +1,6 @@
 openapi: "3.1.0"
 info:
-  title: Course Companion — Feature 004 API
+  title: Claude Teacher — Feature 004 API
   description: >
     Progress tracking, streak calculation, keyword search, and access tier check.
     All endpoints require a valid Stytch session JWT passed as a Bearer token.

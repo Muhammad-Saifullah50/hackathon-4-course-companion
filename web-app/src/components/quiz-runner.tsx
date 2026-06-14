@@ -2,7 +2,7 @@
 
 import { CheckCircle2, LogIn, RotateCcw, Save, XCircle } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, use, useState } from "react";
 
 import { Spinner } from "@/components/loading-ui";
 import type { GradedResult, QuizPublic } from "@/lib/api-types";
@@ -18,20 +18,18 @@ export function QuizRunner({
   quiz,
   title,
   order,
-  authenticated,
+  authentication,
 }: {
   quiz: QuizPublic;
   title: string;
   order: number;
-  authenticated: boolean;
+  authentication: Promise<boolean>;
 }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState("");
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [grading, setGrading] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const question = quiz.questions[current];
   const answer = answers[current];
@@ -41,7 +39,6 @@ export function QuizRunner({
     setCurrent(0);
     setSelected("");
     setAnswers([]);
-    setSaved(false);
     setError("");
   }
 
@@ -71,28 +68,6 @@ export function QuizRunner({
   const correct = answers.filter((item) => item.result.is_correct).length;
   const score = Math.round((correct / quiz.questions.length) * 100);
 
-  async function save() {
-    if (!authenticated) return;
-    setError("");
-    setSaving(true);
-    try {
-      const response = await fetch("/api/progress", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chapter_slug: quiz.chapter_slug,
-          quiz_score: score,
-        }),
-      });
-      if (!response.ok) throw new Error("Save failed");
-      setSaved(true);
-    } catch {
-      setError("Your score could not be saved. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   if (phase === "intro") {
     return (
       <div className="quiz-panel surface-card">
@@ -102,7 +77,9 @@ export function QuizRunner({
         <ul>
           <li><CheckCircle2 size={14} /> No time limit</li>
           <li><CheckCircle2 size={14} /> Choices lock after grading</li>
-          {!authenticated && <li><LogIn size={14} /> Sign in to save your final score</li>}
+          <Suspense fallback={null}>
+            <QuizAuthHint authentication={authentication} />
+          </Suspense>
         </ul>
         <button className="button-primary w-full" onClick={start}>Begin quiz</button>
       </div>
@@ -127,16 +104,19 @@ export function QuizRunner({
           ))}
         </div>
         {error && <p className="form-error">{error}</p>}
-        {authenticated ? (
-          <button className="button-primary w-full" onClick={save} disabled={saved || saving} aria-busy={saving}>
-            {saving ? <Spinner label="Saving score" /> : <Save size={14} />}
-            {saved ? "Score saved" : saving ? "Saving score..." : "Save score"}
-          </button>
-        ) : (
-          <Link className="button-primary w-full" href={`/login?return_to=${encodeURIComponent(`/quiz/${quiz.chapter_slug}`)}`}>
-            <LogIn size={14} /> Sign in to save
-          </Link>
-        )}
+        <Suspense
+          fallback={
+            <button className="button-primary w-full" disabled>
+              <Spinner label="Checking session" /> Checking session...
+            </button>
+          }
+        >
+          <QuizSaveControl
+            authentication={authentication}
+            chapterSlug={quiz.chapter_slug}
+            score={score}
+          />
+        </Suspense>
         <div className="grid grid-cols-2 gap-3">
           <button className="button-secondary" onClick={start}><RotateCcw size={14} /> Retake</button>
           <Link className="button-secondary" href={`/course/${quiz.chapter_slug}`}>Review chapter</Link>
@@ -192,5 +172,80 @@ export function QuizRunner({
         </button>
       )}
     </div>
+  );
+}
+
+function QuizAuthHint({
+  authentication,
+}: {
+  authentication: Promise<boolean>;
+}) {
+  if (use(authentication)) return null;
+  return (
+    <li>
+      <LogIn size={14} /> Sign in to save your final score
+    </li>
+  );
+}
+
+function QuizSaveControl({
+  authentication,
+  chapterSlug,
+  score,
+}: {
+  authentication: Promise<boolean>;
+  chapterSlug: string;
+  score: number;
+}) {
+  const authenticated = use(authentication);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  if (!authenticated) {
+    return (
+      <Link
+        className="button-primary w-full"
+        href={`/login?return_to=${encodeURIComponent(`/quiz/${chapterSlug}`)}`}
+      >
+        <LogIn size={14} /> Sign in to save
+      </Link>
+    );
+  }
+
+  async function save() {
+    setSaveError("");
+    setSaving(true);
+    try {
+      const response = await fetch("/api/progress", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chapter_slug: chapterSlug,
+          quiz_score: score,
+        }),
+      });
+      if (!response.ok) throw new Error("Save failed");
+      setSaved(true);
+    } catch {
+      setSaveError("Your score could not be saved. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      {saveError && <p className="form-error">{saveError}</p>}
+      <button
+        className="button-primary w-full"
+        onClick={save}
+        disabled={saved || saving}
+        aria-busy={saving}
+      >
+        {saving ? <Spinner label="Saving score" /> : <Save size={14} />}
+        {saved ? "Score saved" : saving ? "Saving score..." : "Save score"}
+      </button>
+    </>
   );
 }
