@@ -1,5 +1,5 @@
-import { LogoutScreen } from "@/components/logout-screen";
+import { redirect } from "next/navigation";
 
 export default function LogoutPage() {
-  return <LogoutScreen />;
+  redirect("/api/auth/logout?return_to=%2Flogin");
 }

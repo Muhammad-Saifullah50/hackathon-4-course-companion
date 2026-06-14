@@ -8,11 +8,9 @@ from src.core.auth import get_current_user
 def test_connected_app_token_resolves_same_stytch_user():
     client = MagicMock()
     client.sessions.authenticate_jwt.side_effect = ValueError("not a session")
-    client.users.get.return_value.user = type(
-        "User",
-        (),
-        {"emails": [type("Email", (), {"email": "learner@example.com"})()]},
-    )()
+    client.users.get.return_value.emails = [
+        type("Email", (), {"email": "learner@example.com"})()
+    ]
 
     signing_key = MagicMock(key="public-key")
     jwks_client = MagicMock()

@@ -10,21 +10,21 @@ export function AuthShell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-12 lg:grid-cols-[1fr_440px]">
+    <div className="mx-auto grid min-h-[calc(100vh-7rem)] max-w-6xl items-center gap-10 px-6 py-12 lg:grid-cols-[1fr_440px]">
       <section>
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">
+        <p className="eyebrow">
           {eyebrow}
         </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-950 sm:text-5xl">
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[var(--ink)] sm:text-5xl">
           {title}
         </h1>
-        <p className="mt-4 max-w-xl text-lg leading-8 text-zinc-600">
+        <p className="mt-4 max-w-xl text-lg leading-8 text-[var(--muted)]">
           {description}
         </p>
       </section>
-      <section className="rounded-3xl border border-zinc-200 bg-white p-4 shadow-xl shadow-zinc-200/50 sm:p-6">
+      <section className="surface-card p-4 shadow-xl sm:p-6">
         {children}
       </section>
-    </main>
+    </div>
   );
 }

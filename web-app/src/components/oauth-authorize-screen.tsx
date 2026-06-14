@@ -1,34 +1,14 @@
 "use client";
 
 import { IdentityProvider, useStytchSession } from "@stytch/nextjs";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
 
-import { currentRelativeUrl, withReturnTo } from "@/lib/auth-navigation";
+import { BrandedLoader } from "@/components/loading-ui";
 import { authPresentation } from "@/lib/stytch-config";
 
 export function OAuthAuthorizeScreen() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { session, isInitialized } = useStytchSession();
-
-  useEffect(() => {
-    if (isInitialized && !session) {
-      const returnTo = currentRelativeUrl(
-        pathname,
-        new URLSearchParams(searchParams.toString()),
-      );
-      router.replace(withReturnTo("/login", returnTo));
-    }
-  }, [isInitialized, pathname, router, searchParams, session]);
-
+  const { isInitialized, session } = useStytchSession();
   if (!isInitialized || !session) {
-    return (
-      <main className="flex min-h-screen items-center justify-center">
-        Preparing secure authorization...
-      </main>
-    );
+    return <BrandedLoader label="Preparing secure authorization" />;
   }
 
   return (

@@ -1,59 +1,59 @@
 "use client";
 
-import { useStytchSession, useStytchUser } from "@stytch/nextjs";
+import { Calendar, Check, Copy, ExternalLink, LogOut, Mail, Shield, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useState } from "react";
 
-export function AccountScreen() {
-  const router = useRouter();
-  const { session, isInitialized } = useStytchSession();
-  const { user } = useStytchUser();
+import { ThemeToggle } from "@/components/theme-toggle";
+import type { AccessStatus, AuthSession, UserProfile } from "@/lib/api-types";
 
-  useEffect(() => {
-    if (isInitialized && !session) {
-      router.replace("/login?return_to=%2Faccount");
-    }
-  }, [isInitialized, router, session]);
+export function AccountScreen({
+  access,
+  profile,
+  session,
+}: {
+  access: AccessStatus;
+  profile: UserProfile;
+  session: AuthSession;
+}) {
+  const [copied, setCopied] = useState(false);
 
-  if (!isInitialized || !session || !user) {
-    return <main className="flex min-h-screen items-center justify-center">Loading...</main>;
+  async function copyId() {
+    if (!profile) return;
+    await navigator.clipboard.writeText(profile.id);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
   }
 
-  const email = user.emails[0]?.email ?? "No email available";
-
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl items-center px-6 py-12">
-      <section className="w-full rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">
-          Account
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold text-zinc-950">{email}</h1>
-        <dl className="mt-8 grid gap-4 rounded-2xl bg-zinc-50 p-5 text-sm">
-          <div>
-            <dt className="text-zinc-500">Stytch user ID</dt>
-            <dd className="mt-1 break-all font-mono text-zinc-900">{user.user_id}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Session expires</dt>
-            <dd className="mt-1 text-zinc-900">{session.expires_at}</dd>
-          </div>
-        </dl>
-        <div className="mt-8 flex gap-3">
-          <Link
-            href="/"
-            className="rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold"
-          >
-            Home
-          </Link>
-          <Link
-            href="/logout"
-            className="rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white"
-          >
-            Sign out
-          </Link>
+      <div className="mx-auto max-w-[680px] px-5 py-10">
+        <p className="eyebrow mb-2">Account</p><h1 className="mb-7 text-2xl font-semibold">Account settings</h1>
+        <div className="grid gap-4">
+          <section className="surface-card p-6">
+            <div className="mb-5 flex items-center gap-3"><span className="avatar h-11 w-11 text-lg">{profile.email.charAt(0).toUpperCase()}</span><div><strong>{profile.email}</strong><p className="muted text-sm">Course Companion learner</p></div></div>
+            <div className="account-details">
+              <div><Mail size={15} /><span><small>Email</small>{profile.email}</span></div>
+              <div><Calendar size={15} /><span><small>Member since</small>{new Date(profile.created_at).toLocaleDateString()}</span></div>
+              <div><User size={15} /><span className="min-w-0"><small>User ID</small><code>{profile.id}</code></span><button onClick={copyId}>{copied ? <Check size={14} /> : <Copy size={14} />}</button></div>
+              <div><Shield size={15} /><span><small>Tier</small>{access.tier}</span><em>Premium coming later</em></div>
+            </div>
+          </section>
+          <section className="surface-card p-6">
+            <h2 className="font-semibold">ChatGPT integration</h2>
+            <p className="muted mt-2 text-sm leading-6">Use this same account when connecting Course Companion in ChatGPT. The consent screen grants profile, progress, and quiz score access.</p>
+            <a className="mt-4 inline-flex items-center gap-1 text-sm text-[var(--emerald)]" href="https://chatgpt.com" target="_blank" rel="noreferrer">Open ChatGPT <ExternalLink size={12} /></a>
+          </section>
+          <section className="surface-card flex items-center justify-between p-6"><div><h2 className="font-semibold">Appearance</h2><p className="muted mt-1 text-sm">Follow your system or choose manually.</p></div><ThemeToggle showLabel /></section>
+          <section className="surface-card p-6">
+            <h2 className="font-semibold">Session</h2>
+            <p className="muted mt-2 text-sm">
+              {session.expires_at
+                ? `Expires ${new Date(session.expires_at).toLocaleString()}`
+                : "Active Stytch session"}
+            </p>
+            <Link href="/logout" className="mt-4 inline-flex items-center gap-2 text-sm text-[var(--danger)]"><LogOut size={14} /> Sign out</Link>
+          </section>
         </div>
-      </section>
-    </main>
+      </div>
   );
 }

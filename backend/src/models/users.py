@@ -6,6 +6,13 @@ from pydantic import BaseModel
 class AuthenticatedUser(BaseModel):
     user_id: str
     email: str
+    expires_at: datetime | None = None
+
+
+class AuthSession(BaseModel):
+    user_id: str
+    email: str
+    expires_at: datetime | None
 
 
 class UserProfile(BaseModel):

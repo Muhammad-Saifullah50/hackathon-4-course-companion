@@ -23,6 +23,16 @@ class Settings(BaseSettings):
     stytch_project_id: str = ""
     stytch_secret: str = ""
     database_url: str = ""
+    cors_allowed_origins: str = "http://localhost:3000"
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        """Return normalized browser origins allowed by CORS."""
+        return [
+            origin.strip()
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
+        ]
 
 
 settings = Settings()

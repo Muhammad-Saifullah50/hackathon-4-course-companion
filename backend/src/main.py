@@ -2,13 +2,13 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.core.auth import get_stytch_client
+from src.core.config import settings
 from src.core.dependencies import get_content_service
-from src.routers import content, quizzes
-from src.routers import users
-from src.routers import progress, search, access
+from src.routers import access, auth, content, progress, quizzes, search, users
 from src.services.content import ServiceUnavailableError
 
 
@@ -27,8 +27,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
 app.include_router(content.router, prefix="/chapters", tags=["content"])
 app.include_router(quizzes.router, prefix="/quizzes", tags=["quizzes"])
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(progress.router, prefix="/users", tags=["progress"])
 app.include_router(search.router, tags=["search"])

@@ -18,9 +18,9 @@ describe("safeReturnTo", () => {
   });
 
   it("rejects absolute and protocol-relative redirects", () => {
-    expect(safeReturnTo("https://evil.example")).toBe("/account");
-    expect(safeReturnTo("//evil.example/path")).toBe("/account");
-    expect(safeReturnTo(null)).toBe("/account");
+    expect(safeReturnTo("https://evil.example")).toBe("/dashboard");
+    expect(safeReturnTo("//evil.example/path")).toBe("/dashboard");
+    expect(safeReturnTo(null)).toBe("/dashboard");
   });
 });
 

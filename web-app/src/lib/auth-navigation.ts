@@ -1,4 +1,4 @@
-const DEFAULT_RETURN_TO = "/account";
+const DEFAULT_RETURN_TO = "/dashboard";
 const RETURN_TO_STORAGE_KEY = "course_companion_return_to";
 
 export function safeReturnTo(value: string | null | undefined): string {

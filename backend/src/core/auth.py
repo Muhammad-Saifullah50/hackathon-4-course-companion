@@ -1,9 +1,10 @@
-from functools import lru_cache
 import logging
+from datetime import datetime
+from functools import lru_cache
 from typing import Annotated
 
 import jwt
-from fastapi import HTTPException, Security
+from fastapi import Header, HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from stytch import Client
 
@@ -12,6 +13,7 @@ from src.models.users import AuthenticatedUser
 
 logger = logging.getLogger(__name__)
 _stytch_client: Client | None = None
+_bearer = HTTPBearer(auto_error=False)
 
 
 def get_stytch_client() -> Client:
@@ -31,11 +33,46 @@ def get_connected_apps_jwks_client() -> jwt.PyJWKClient:
     return jwt.PyJWKClient(jwks_uri)
 
 
-def _extract_email(resp: object) -> str:
-    emails = getattr(getattr(resp, "user", None), "emails", None)
+def _extract_email(user: object) -> str:
+    emails = getattr(user, "emails", None)
     if emails:
         return emails[0].email
     raise HTTPException(status_code=401, detail="Email claim missing from token")
+
+
+def _session_email(client: Client, resp: object, user_id: str) -> str:
+    user = getattr(resp, "user", None)
+    if user is not None and getattr(user, "emails", None):
+        return _extract_email(user)
+
+    try:
+        return _extract_email(client.users.get(user_id=user_id))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("Stytch user profile lookup failed: %s", type(exc).__name__)
+        raise HTTPException(
+            status_code=401,
+            detail="Email claim missing from token",
+        ) from exc
+
+
+def _session_expiry(resp: object) -> datetime | None:
+    session = getattr(resp, "session", None)
+    expires_at = getattr(session, "expires_at", None)
+    return expires_at if isinstance(expires_at, datetime) else None
+
+
+def _authenticated_session(client: Client, resp: object) -> AuthenticatedUser:
+    session = getattr(resp, "session", None)
+    user_id = getattr(session, "user_id", None)
+    if not isinstance(user_id, str) or not user_id:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return AuthenticatedUser(
+        user_id=user_id,
+        email=_session_email(client, resp, user_id),
+        expires_at=_session_expiry(resp),
+    )
 
 
 def _connected_app_email(claims: dict[str, object], user_id: str) -> str:
@@ -44,8 +81,8 @@ def _connected_app_email(claims: dict[str, object], user_id: str) -> str:
         return email
 
     try:
-        user = get_stytch_client().users.get(user_id=user_id).user
-        return _extract_email(type("UserResponse", (), {"user": user})())
+        response = get_stytch_client().users.get(user_id=user_id)
+        return _extract_email(response)
     except Exception as exc:
         logger.warning(
             "Connected Apps user profile lookup failed: %s",
@@ -80,16 +117,42 @@ def _authenticate_connected_app_token(token: str) -> AuthenticatedUser:
 
 
 def get_current_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Security(HTTPBearer())],
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Security(_bearer),
+    ] = None,
+    session_token: Annotated[
+        str | None,
+        Header(alias="X-Stytch-Session"),
+    ] = None,
 ) -> AuthenticatedUser:
+    client = get_stytch_client()
+    if session_token:
+        try:
+            return _authenticated_session(
+                client,
+                client.sessions.authenticate(session_token=session_token),
+            )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.warning(
+                "Stytch opaque session authentication failed: %s",
+                type(exc).__name__,
+            )
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or expired token",
+            ) from exc
+
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     try:
-        resp = get_stytch_client().sessions.authenticate_jwt(
+        resp = client.sessions.authenticate_jwt(
             session_jwt=credentials.credentials
         )
-        return AuthenticatedUser(
-            user_id=resp.session.user_id,
-            email=_extract_email(resp),
-        )
+        return _authenticated_session(client, resp)
     except HTTPException:
         raise
     except Exception:
@@ -103,3 +166,15 @@ def get_current_user(
                 type(exc).__name__,
             )
             raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+def revoke_session(session_token: str) -> None:
+    """Revoke an opaque Stytch session token."""
+    try:
+        get_stytch_client().sessions.revoke(session_token=session_token)
+    except Exception as exc:
+        logger.warning("Stytch session revocation failed: %s", type(exc).__name__)
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token",
+        ) from exc

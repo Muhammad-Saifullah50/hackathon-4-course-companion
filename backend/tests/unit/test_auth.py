@@ -61,11 +61,9 @@ def _connected_app_token(
 def _connected_app_client() -> MagicMock:
     client = MagicMock()
     client.sessions.authenticate_jwt.side_effect = ValueError("not a session JWT")
-    client.users.get.return_value.user = type(
-        "User",
-        (),
-        {"emails": [type("Email", (), {"email": "learner@example.com"})()]},
-    )()
+    client.users.get.return_value.emails = [
+        type("Email", (), {"email": "learner@example.com"})()
+    ]
     return client
 
 
@@ -122,13 +120,36 @@ class TestGetCurrentUser:
 
         assert exc_info.value.status_code == 401
 
-    def test_missing_email_claim_raises_401(self) -> None:
+    def test_missing_session_user_fetches_profile_email(self) -> None:
         resp = MagicMock()
         resp.session.user_id = "user-test-abc123"
-        resp.user.emails = []  # no emails
+        resp.user = None
 
         mock_client = MagicMock()
         mock_client.sessions.authenticate_jwt.return_value = resp
+        mock_client.users.get.return_value.emails = [
+            type("Email", (), {"email": "student@example.com"})()
+        ]
+
+        with patch("src.core.auth.get_stytch_client", return_value=mock_client):
+            result = get_current_user(_make_creds("valid.jwt.token"))
+
+        assert result == AuthenticatedUser(
+            user_id="user-test-abc123",
+            email="student@example.com",
+        )
+        mock_client.users.get.assert_called_once_with(
+            user_id="user-test-abc123"
+        )
+
+    def test_missing_email_in_profile_raises_401(self) -> None:
+        resp = MagicMock()
+        resp.session.user_id = "user-test-abc123"
+        resp.user = None
+
+        mock_client = MagicMock()
+        mock_client.sessions.authenticate_jwt.return_value = resp
+        mock_client.users.get.return_value.emails = []
 
         with patch("src.core.auth.get_stytch_client", return_value=mock_client):
             with pytest.raises(HTTPException) as exc_info:

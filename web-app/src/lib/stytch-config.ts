@@ -35,9 +35,9 @@ export function buildLoginConfig(
 
 export const authPresentation: PresentationConfig = {
   theme: {
-    primary: "#18181b",
-    success: "#047857",
-    destructive: "#b91c1c",
+    primary: "#0A7F5A",
+    success: "#137447",
+    destructive: "#B4232C",
   },
   options: {
     hideHeaderText: false,

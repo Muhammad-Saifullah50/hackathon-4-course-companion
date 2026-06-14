@@ -198,6 +198,10 @@ The project constitution defines the code quality, testing, performance, securit
 
 ---
 
-## Recent Changes
-
-- **002-quiz-grading**: Added Python 3.12, FastAPI, Pydantic v2, boto3 (S3-compatible R2 client), and pytest
+<!-- BEGIN:nextjs-agent-rules -->
+ 
+# Next.js: ALWAYS read docs before coding
+ 
+Before any Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.
+ 
+<!-- END:nextjs-agent-rules -->
