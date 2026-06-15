@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+import stripe
 
 from src.db.models import BillingCustomer, StripeWebhookEvent, User
 from src.services.billing import (
@@ -189,6 +190,45 @@ def test_parse_checkout_event_extracts_one_time_payment_fields() -> None:
     assert event.customer_id == "cus_123"
     assert event.payment_status == "paid"
     assert event.plan == "premium"
+
+
+def test_construct_event_parses_real_stripe_event(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.services.billing.settings.stripe_webhook_secret", "whsec_test"
+    )
+    stripe_event = stripe.Event.construct_from(
+        {
+            "id": "evt_123",
+            "type": "customer.subscription.updated",
+            "created": 1_750_000_000,
+            "data": {
+                "object": {
+                    "id": "sub_123",
+                    "customer": "cus_123",
+                    "status": "active",
+                    "metadata": {"user_id": "user_123"},
+                    "items": {"data": [{"price": {"id": "price_123"}}]},
+                }
+            },
+        },
+        None,
+    )
+    construct_event = MagicMock(return_value=stripe_event)
+    monkeypatch.setattr(
+        "src.services.billing.stripe.Webhook.construct_event", construct_event
+    )
+
+    event = BillingService().construct_event(b"payload", "signature")
+
+    construct_event.assert_called_once_with(
+        b"payload", "signature", "whsec_test"
+    )
+    assert event.event_id == "evt_123"
+    assert event.user_id == "user_123"
+    assert event.subscription_id == "sub_123"
+    assert event.price_id == "price_123"
 
 
 async def test_paid_checkout_grants_lifetime_premium(

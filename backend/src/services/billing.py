@@ -160,7 +160,7 @@ class BillingService:
         event = stripe.Webhook.construct_event(
             payload, signature, settings.stripe_webhook_secret
         )
-        return _parse_event(cast(Mapping[str, object], event))
+        return _parse_event(event.to_dict())
 
     async def process_event(
         self, event: BillingEvent, db: AsyncSession
