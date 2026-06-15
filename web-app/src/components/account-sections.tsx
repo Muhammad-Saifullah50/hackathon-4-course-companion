@@ -65,19 +65,21 @@ export function AccountAccessCard({
                 <li>{plan.seats_included} seats included</li>
               ) : null}
             </ul>
-            {billing.tier === plan.tier ? (
-              <span className="plan-state">Current plan</span>
-            ) : plan.tier === "premium" && !isPaid ? (
-              <form action="/api/billing/checkout" method="post">
-                <button className="button-primary w-full">
-                  Upgrade with Stripe
+            <div className="pricing-card-action">
+              {billing.tier === plan.tier ? (
+                <span className="plan-state">Current plan</span>
+              ) : plan.tier === "premium" && !isPaid ? (
+                <form action="/api/billing/checkout" method="post">
+                  <button className="button-primary w-full">
+                    Upgrade with Stripe
+                  </button>
+                </form>
+              ) : (
+                <button className="button-secondary w-full" disabled>
+                  Coming soon
                 </button>
-              </form>
-            ) : (
-              <button className="button-secondary w-full" disabled>
-                Coming soon
-              </button>
-            )}
+              )}
+            </div>
           </article>
         ))}
       </div>
