@@ -64,6 +64,15 @@ class ContentService:
 
     # --------------------------------------------------------------- R2 helpers
 
+    def _fetch_manifest_from_local(self) -> Manifest:
+        path = settings.resolved_local_content_path / _MANIFEST_KEY
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            return Manifest.model_validate(raw)
+        except Exception as exc:
+            logger.error("Failed to load local manifest %s: %s", path, exc)
+            raise ServiceUnavailableError("Manifest unavailable") from exc
+
     def _fetch_manifest_from_r2(self) -> Manifest:
         try:
             obj = self._r2.get_object(Bucket=settings.r2_bucket_name, Key=_MANIFEST_KEY)
@@ -72,6 +81,18 @@ class ContentService:
         except (ClientError, json.JSONDecodeError, Exception) as exc:
             logger.error("Failed to load manifest from R2: %s", exc)
             raise ServiceUnavailableError("Manifest unavailable") from exc
+
+    def _fetch_chapter_from_local(self, slug: str) -> str:
+        path = settings.resolved_local_content_path / "chapters" / f"{slug}.md"
+        try:
+            return path.read_text(encoding="utf-8")
+        except FileNotFoundError as exc:
+            raise ChapterNotFoundError(
+                f"Chapter file not found locally: {path}"
+            ) from exc
+        except OSError as exc:
+            logger.error("Failed to load local chapter %s: %s", slug, exc)
+            raise ServiceUnavailableError(f"Could not fetch chapter: {slug}") from exc
 
     def _fetch_chapter_from_r2(self, slug: str) -> str:
         key = f"chapters/{slug}.md"
@@ -91,7 +112,11 @@ class ContentService:
         if self._manifest_is_fresh():
             return self._manifest_cache  # type: ignore[return-value]
 
-        manifest = await asyncio.to_thread(self._fetch_manifest_from_r2)
+        manifest = (
+            self._fetch_manifest_from_local()
+            if settings.use_local_content
+            else await asyncio.to_thread(self._fetch_manifest_from_r2)
+        )
 
         seen: dict[str, ManifestEntry] = {}
         for entry in manifest.chapters:
@@ -114,7 +139,11 @@ class ContentService:
         if slug not in slugs:
             raise ChapterNotFoundError(f"Unknown chapter slug: {slug}")
 
-        body = await asyncio.to_thread(self._fetch_chapter_from_r2, slug)
+        body = (
+            self._fetch_chapter_from_local(slug)
+            if settings.use_local_content
+            else await asyncio.to_thread(self._fetch_chapter_from_r2, slug)
+        )
         self._chapter_cache[slug] = (body, time.monotonic())
         return body
 

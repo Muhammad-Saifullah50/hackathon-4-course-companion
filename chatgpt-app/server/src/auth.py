@@ -113,3 +113,21 @@ async def authorize_request(
     if not user_id:
         return authentication_required(resource_uri)
     return AuthorizedRequest(token=token, user_id=user_id)
+
+
+async def optional_authorize_request() -> AuthorizedRequest | None:
+    """Return validated caller context when a Bearer token is present."""
+    authorization = get_http_headers(
+        include={"authorization"}
+    ).get("authorization", "")
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        return None
+    try:
+        access_token = await auth_provider.verify_token(token)
+    except Exception:
+        return None
+    if access_token is None:
+        return None
+    user_id = str(access_token.claims.get("sub", ""))
+    return AuthorizedRequest(token=token, user_id=user_id) if user_id else None

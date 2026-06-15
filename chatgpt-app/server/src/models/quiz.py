@@ -26,3 +26,5 @@ class QuizResult(BaseModel):
     total: int
     percentage: float
     per_question: list[QuestionResult]
+    saved: bool = False
+    upgrade_url: str | None = None

@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Flame, Search } from "lucide-react";
+import { ArrowRight, CheckCircle2, Flame, Lock, Search } from "lucide-react";
 import Link from "next/link";
 
 import type {
@@ -36,8 +36,15 @@ export function DashboardProgressSummary({
   progress,
 }: {
   chapters: ChapterSummary[];
-  progress: ProgressResponse;
+  progress: ProgressResponse | null;
 }) {
+  if (!progress) {
+    return (
+      <p className="muted mt-1">
+        Premium saves chapter completion, quiz scores, and learning streaks.
+      </p>
+    );
+  }
   return (
     <p className="muted mt-1">
       {completionMap(progress).size} of {chapters.length} chapters complete. Keep
@@ -51,9 +58,18 @@ export function DashboardLearning({
   progress,
 }: {
   chapters: ChapterSummary[];
-  progress: ProgressResponse;
+  progress: ProgressResponse | null;
 }) {
-  const { completed, percent } = progressStats(chapters, progress);
+  const emptyProgress: ProgressResponse = {
+    user_id: "",
+    completions: [],
+    current_streak: 0,
+    last_active_date: null,
+  };
+  const { completed, percent } = progressStats(
+    chapters,
+    progress ?? emptyProgress,
+  );
   const next = chapters.find((chapter) => !completed.has(chapter.slug));
 
   return (
@@ -84,10 +100,16 @@ export function DashboardLearning({
         <div className="dashboard-path">
           {chapters.map((chapter) => {
             const entry = completed.get(chapter.slug);
+            const accessible = chapter.accessible !== false;
             return (
-              <Link href={`/course/${chapter.slug}`} key={chapter.slug}>
+              <Link
+                href={accessible ? `/course/${chapter.slug}` : "/account"}
+                key={chapter.slug}
+              >
                 {entry ? (
                   <CheckCircle2 size={17} />
+                ) : !accessible ? (
+                  <Lock size={14} />
                 ) : (
                   <span>{chapter.order}</span>
                 )}
@@ -110,8 +132,23 @@ export function DashboardStats({
   progress,
 }: {
   chapters: ChapterSummary[];
-  progress: ProgressResponse;
+  progress: ProgressResponse | null;
 }) {
+  if (!progress) {
+    return (
+      <section className="surface-card dashboard-continue">
+        <Lock className="text-[var(--indigo)]" size={22} />
+        <p className="eyebrow">Premium progress</p>
+        <h2>Keep your learning in sync</h2>
+        <p className="muted">
+          Save completed chapters, quiz scores, and your daily streak.
+        </p>
+        <Link href="/account" className="button-primary mt-5">
+          Upgrade Now <ArrowRight size={15} />
+        </Link>
+      </section>
+    );
+  }
   const { average, percent } = progressStats(chapters, progress);
 
   return (

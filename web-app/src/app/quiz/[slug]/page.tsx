@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
+import { Lock } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { QuizRunner } from "@/components/quiz-runner";
 import { getOptionalSession } from "@/lib/auth-dal";
-import { ApiError, getChapter, getChapters, getQuiz } from "@/lib/server-api";
+import {
+  getServerBillingStatus,
+  getServerChapter,
+  getServerChapters,
+  getServerQuiz,
+} from "@/lib/authenticated-api";
+import { getChapters, getChapter, getQuiz } from "@/lib/server-api";
 
 export const unstable_instant = {
   prefetch: "runtime",
@@ -26,12 +34,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  try {
-    const chapter = await getChapter(slug);
-    return { title: `${chapter.title} Quiz | Claude Teacher` };
-  } catch {
-    return {};
-  }
+  const chapter = (await getChapters()).find((item) => item.slug === slug);
+  return chapter ? { title: `${chapter.title} Quiz | Claude Teacher` } : {};
 }
 
 export default async function QuizPage({
@@ -40,24 +44,35 @@ export default async function QuizPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const authentication = getOptionalSession().then(Boolean);
-  try {
-    const [chapter, quiz] = await Promise.all([
-      getChapter(slug),
-      getQuiz(slug),
-    ]);
+  const session = await getOptionalSession();
+  const chapters = session ? await getServerChapters() : await getChapters();
+  const summary = chapters.find((item) => item.slug === slug);
+  if (!summary) notFound();
+  if (summary.accessible === false) {
     return (
-      <div className="mx-auto max-w-[680px] px-5 py-12">
-        <QuizRunner
-          authentication={authentication}
-          quiz={quiz}
-          title={chapter.title}
-          order={chapter.order}
-        />
-      </div>
+      <main className="protected-empty">
+        <Lock size={28} />
+        <h1>Premium quiz</h1>
+        <p>Upgrade to take the quiz for {summary.title}.</p>
+        <Link href="/account" className="button-primary">View Premium</Link>
+      </main>
     );
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) notFound();
-    throw error;
   }
+  const [chapter, quiz, billing] = await Promise.all([
+    session ? getServerChapter(slug) : getChapter(slug),
+    session ? getServerQuiz(slug) : getQuiz(slug),
+    session ? getServerBillingStatus() : null,
+  ]);
+  const paid = Boolean(billing && billing.tier !== "free");
+  return (
+    <div className="mx-auto max-w-[680px] px-5 py-12">
+      <QuizRunner
+        authentication={Promise.resolve(Boolean(session))}
+        progressEligible={paid}
+        quiz={quiz}
+        title={chapter.title}
+        order={chapter.order}
+      />
+    </div>
+  );
 }

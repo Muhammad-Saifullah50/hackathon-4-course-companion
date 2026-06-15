@@ -81,6 +81,26 @@ async def get_progress(ctx: Context | None = None) -> ToolResult:
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 401:
             return downstream_authentication_failed(PROGRESS_RESOURCE_URI)
+        if exc.response.status_code == 403:
+            return ToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text="Progress tracking requires Premium.",
+                    )
+                ],
+                structured_content={
+                    "error": {
+                        "message": "Progress tracking requires Premium.",
+                        "code": "upgrade_required",
+                    }
+                },
+                meta={
+                    "ui": {"resourceUri": PROGRESS_RESOURCE_URI},
+                    "openai/outputTemplate": PROGRESS_RESOURCE_URI,
+                },
+                is_error=True,
+            )
         raise
     panel = _normalize_progress(data, chapters)
     return ToolResult(

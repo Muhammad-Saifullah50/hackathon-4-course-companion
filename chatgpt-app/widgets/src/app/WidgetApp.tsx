@@ -125,6 +125,8 @@ export function WidgetApp({ initialView, bridge }: WidgetAppProps) {
           total={asNumber(data.total)}
           percentage={asNumber(data.percentage)}
           per_question={asArray(data.per_question)}
+          saved={asBoolean(data.saved)}
+          upgrade_url={asNullableString(data.upgrade_url)}
           onViewProgress={() =>
             void navigate("get_progress", {}, "progress")
           }

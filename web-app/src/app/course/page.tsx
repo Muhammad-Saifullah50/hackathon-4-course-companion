@@ -1,13 +1,17 @@
-import { ArrowRight, BookOpen, CheckCircle2 } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, Lock } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { CourseProgressOverlay } from "@/components/course-progress-overlay";
 import { CourseProgressSkeleton } from "@/components/loading-ui";
-import type { ProgressResponse } from "@/lib/api-types";
+import type { BillingStatus, ProgressResponse } from "@/lib/api-types";
 import { getOptionalSession } from "@/lib/auth-dal";
-import { getServerProgress } from "@/lib/authenticated-api";
+import {
+  getServerBillingStatus,
+  getServerChapters,
+  getServerProgress,
+} from "@/lib/authenticated-api";
 import { courseMeta } from "@/lib/course-meta";
 import { getChapters } from "@/lib/server-api";
 
@@ -36,15 +40,23 @@ async function ProgressBadge({
 }
 
 async function ViewerNotice({
-  session,
+  billing,
 }: {
-  session: ReturnType<typeof getOptionalSession>;
+  billing: Promise<BillingStatus | null>;
 }) {
-  if (await session) return null;
+  const value = await billing;
+  if (value?.tier && value.tier !== "free") return null;
+  if (value?.tier === "free") {
+    return (
+      <aside className="save-notice">
+        Upgrade to Premium to unlock all chapters, quizzes, and saved progress.
+        <Link href="/account"> View plans</Link>
+      </aside>
+    );
+  }
   return (
     <aside className="save-notice">
-      Sign in to save chapter completion, quiz scores, and your UTC learning
-      streak.
+      Create a Free account for the first three chapters and their quizzes.
       <Link href="/signup"> Create a free account</Link>
     </aside>
   );
@@ -52,10 +64,18 @@ async function ViewerNotice({
 
 export default async function CoursePage() {
   const session = getOptionalSession();
-  const progress = session.then((value) =>
-    value ? getServerProgress(value.user_id) : null,
+  const billing = session.then((value) =>
+    value ? getServerBillingStatus() : null,
   );
-  const chapters = await getChapters();
+  const chapters = session.then((value) =>
+    value ? getServerChapters() : getChapters(),
+  );
+  const progress = Promise.all([session, billing]).then(([value, plan]) =>
+    value && plan?.tier !== "free"
+      ? getServerProgress(value.user_id)
+      : null,
+  );
+  const chapterList = await chapters;
 
   return (
     <div className="page-shell">
@@ -64,12 +84,14 @@ export default async function CoursePage() {
         <h1 className="text-3xl font-semibold tracking-tight">Course chapters</h1>
         <p className="muted mt-3 leading-7">
           Move from the Claude Agent SDK foundations through MCP servers and
-          reusable agent skills. Every chapter and quiz is free to access.
+          reusable agent skills. Free learners get the first three chapters;
+          Premium unlocks the full course and progress tracking.
         </p>
       </header>
       <div className="course-list">
-        {chapters.map((chapter, index) => {
+        {chapterList.map((chapter, index) => {
           const meta = courseMeta(chapter.slug);
+          const accessible = chapter.accessible !== false;
           return (
             <article className="course-card" key={chapter.slug}>
               <div className="chapter-number">{chapter.order}</div>
@@ -89,15 +111,21 @@ export default async function CoursePage() {
                   <span><CheckCircle2 size={13} /> 5-question quiz</span>
                 </div>
               </div>
-              <Link href={`/course/${chapter.slug}`} className="button-secondary">
-                {index === 0 ? "Start chapter" : "Read chapter"} <ArrowRight size={15} />
-              </Link>
+              {accessible ? (
+                <Link href={`/course/${chapter.slug}`} className="button-secondary">
+                  {index === 0 ? "Start chapter" : "Read chapter"} <ArrowRight size={15} />
+                </Link>
+              ) : (
+                <Link href="/account" className="button-secondary">
+                  <Lock size={14} /> Premium
+                </Link>
+              )}
             </article>
           );
         })}
       </div>
       <Suspense fallback={null}>
-        <ViewerNotice session={session} />
+        <ViewerNotice billing={billing} />
       </Suspense>
     </div>
   );

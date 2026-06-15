@@ -11,6 +11,8 @@ import type {
 const mocks = vi.hoisted(() => ({
   getChapters: vi.fn(),
   getOptionalSession: vi.fn(),
+  getServerBillingStatus: vi.fn(),
+  getServerChapters: vi.fn(),
   getServerProfile: vi.fn(),
   getServerProgress: vi.fn(),
   verifySession: vi.fn(),
@@ -22,6 +24,8 @@ vi.mock("@/lib/auth-dal", () => ({
 }));
 
 vi.mock("@/lib/authenticated-api", () => ({
+  getServerBillingStatus: mocks.getServerBillingStatus,
+  getServerChapters: mocks.getServerChapters,
   getServerProfile: mocks.getServerProfile,
   getServerProgress: mocks.getServerProgress,
 }));
@@ -90,6 +94,13 @@ const progress: ProgressResponse = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.getServerBillingStatus.mockResolvedValue({
+    tier: "premium",
+    subscription_status: "active",
+    current_period_end: null,
+    cancel_at_period_end: false,
+  });
+  mocks.getServerChapters.mockResolvedValue(chapters);
 });
 
 describe("streamed pages", () => {
@@ -115,20 +126,40 @@ describe("streamed pages", () => {
     expect(await streamed.finish()).toContain("Welcome back");
   });
 
-  it("renders cached course chapters while optional auth remains pending", async () => {
+  it("renders the Free dashboard without requesting premium progress", async () => {
+    mocks.verifySession.mockReturnValue(Promise.resolve(session));
+    mocks.getChapters.mockReturnValue(Promise.resolve(chapters));
+    mocks.getServerProfile.mockReturnValue(Promise.resolve(profile));
+    mocks.getServerBillingStatus.mockResolvedValue({
+      tier: "free",
+      subscription_status: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+    });
+
+    const streamed = await readStream(
+      await renderToReadableStream(DashboardPage()),
+    );
+    const html = await streamed.finish();
+
+    expect(html).toContain("Premium progress");
+    expect(html).toContain("View Premium");
+    expect(mocks.getServerProgress).not.toHaveBeenCalled();
+  });
+
+  it("streams the course shell while entitlement resolution is pending", async () => {
     const pendingSession = deferred<AuthSession | null>();
 
     mocks.getOptionalSession.mockReturnValue(pendingSession.promise);
     mocks.getChapters.mockReturnValue(Promise.resolve(chapters));
 
-    const streamed = await readStream(
-      await renderToReadableStream(await CoursePage()),
-    );
+    const page = CoursePage();
+    pendingSession.resolve(null);
+    const streamed = await readStream(await renderToReadableStream(await page));
 
     expect(streamed.first).toContain("Agent Foundations");
     expect(mocks.getServerProgress).not.toHaveBeenCalled();
 
-    pendingSession.resolve(null);
     expect(await streamed.finish()).toContain("Create a free account");
   });
 });

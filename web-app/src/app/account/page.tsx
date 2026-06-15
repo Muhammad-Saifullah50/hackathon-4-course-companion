@@ -8,15 +8,17 @@ import {
 import { AccountProfileCard } from "@/components/account-screen";
 import { AccountCardSkeleton } from "@/components/loading-ui";
 import type {
-  AccessStatus,
   AuthSession,
+  BillingStatus,
+  PlanCatalogItem,
   UserProfile,
 } from "@/lib/api-types";
 import { verifySession } from "@/lib/auth-dal";
 import {
-  getServerAccess,
+  getServerBillingStatus,
   getServerProfile,
 } from "@/lib/authenticated-api";
+import { getPlans } from "@/lib/server-api";
 
 export const unstable_instant = {
   prefetch: "runtime",
@@ -31,8 +33,14 @@ async function Profile({ value }: { value: Promise<UserProfile> }) {
   return <AccountProfileCard profile={await value} />;
 }
 
-async function Access({ value }: { value: Promise<AccessStatus> }) {
-  return <AccountAccessCard access={await value} />;
+async function Access({
+  value,
+  plans,
+}: {
+  value: Promise<BillingStatus>;
+  plans: Promise<PlanCatalogItem[]>;
+}) {
+  return <AccountAccessCard billing={await value} plans={await plans} />;
 }
 
 async function Session({ value }: { value: Promise<AuthSession> }) {
@@ -42,10 +50,11 @@ async function Session({ value }: { value: Promise<AuthSession> }) {
 export default function AccountPage() {
   const session = verifySession();
   const profile = getServerProfile();
-  const access = getServerAccess();
+  const access = getServerBillingStatus();
+  const plans = getPlans();
 
   return (
-    <div className="mx-auto max-w-[680px] px-5 py-10">
+    <div className="mx-auto max-w-[1040px] px-5 py-10">
       <p className="eyebrow mb-2">Account</p>
       <h1 className="mb-7 text-2xl font-semibold">Account settings</h1>
       <div className="grid gap-4">
@@ -53,7 +62,7 @@ export default function AccountPage() {
           <Profile value={profile} />
         </Suspense>
         <Suspense fallback={<AccountCardSkeleton />}>
-          <Access value={access} />
+          <Access value={access} plans={plans} />
         </Suspense>
         <AccountAppearanceCard />
         <Suspense fallback={<AccountCardSkeleton />}>

@@ -5,6 +5,8 @@ class SearchResult(BaseModel):
     chapter_slug: str
     chapter_title: str
     excerpt: str
+    accessible: bool = True
+    required_tier: str | None = None
 
 
 class SearchResultsPanel(BaseModel):

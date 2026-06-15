@@ -22,7 +22,13 @@ MOCK_SEARCH_RESPONSE = {
 
 @pytest.mark.asyncio
 async def test_search_content_returns_search_results_panel():
-    with patch("src.tools.search.backend") as mock_backend:
+    with (
+        patch("src.tools.search.backend") as mock_backend,
+        patch(
+            "src.tools.search.optional_authorize_request",
+            new=AsyncMock(return_value=None),
+        ),
+    ):
         mock_backend.get = AsyncMock(return_value=MOCK_SEARCH_RESPONSE)
 
         from src.tools.search import search_content
@@ -52,7 +58,13 @@ async def test_search_content_returns_error_for_empty_query():
 
 @pytest.mark.asyncio
 async def test_search_content_clamps_limit_to_20():
-    with patch("src.tools.search.backend") as mock_backend:
+    with (
+        patch("src.tools.search.backend") as mock_backend,
+        patch(
+            "src.tools.search.optional_authorize_request",
+            new=AsyncMock(return_value=None),
+        ),
+    ):
         mock_backend.get = AsyncMock(return_value={**MOCK_SEARCH_RESPONSE, "query": "x"})
 
         from src.tools.search import search_content

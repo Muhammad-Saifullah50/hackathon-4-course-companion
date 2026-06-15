@@ -59,13 +59,40 @@ class QuizService:
             logger.error("Unexpected error fetching quiz %s: %s", chapter_slug, exc)
             raise ServiceUnavailableError(f"Could not fetch quiz: {chapter_slug}") from exc
 
-    async def _fetch_with_retry(self, chapter_slug: str) -> QuizFile:
+    def _fetch_quiz_from_local(self, chapter_slug: str) -> QuizFile:
+        path = (
+            settings.resolved_local_content_path
+            / "quizzes"
+            / f"{chapter_slug}.json"
+        )
         try:
-            return await asyncio.to_thread(self._fetch_quiz_from_r2, chapter_slug)
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            return QuizFile.model_validate(raw)
+        except FileNotFoundError as exc:
+            raise QuizNotFoundError(
+                f"Quiz not found for chapter: {chapter_slug}"
+            ) from exc
+        except Exception as exc:
+            logger.error("Failed to load local quiz %s: %s", chapter_slug, exc)
+            raise ServiceUnavailableError(
+                f"Could not fetch quiz: {chapter_slug}"
+            ) from exc
+
+    async def _fetch_with_retry(self, chapter_slug: str) -> QuizFile:
+        if settings.use_local_content:
+            return self._fetch_quiz_from_local(chapter_slug)
+        try:
+            return await asyncio.to_thread(
+                self._fetch_quiz_from_r2,
+                chapter_slug,
+            )
         except (ServiceUnavailableError,):
             pass
         try:
-            return await asyncio.to_thread(self._fetch_quiz_from_r2, chapter_slug)
+            return await asyncio.to_thread(
+                self._fetch_quiz_from_r2,
+                chapter_slug,
+            )
         except ServiceUnavailableError:
             raise ServiceUnavailableError(f"Quiz service unavailable for chapter: {chapter_slug}")
 

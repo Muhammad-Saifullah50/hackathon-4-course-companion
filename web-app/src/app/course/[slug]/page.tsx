@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Clock, HelpCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, HelpCircle, Lock } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,7 +13,13 @@ import type {
 } from "@/lib/api-types";
 import { courseMeta } from "@/lib/course-meta";
 import { extractToc, readingMinutes } from "@/lib/markdown";
-import { ApiError, getChapter, getChapters, getQuiz } from "@/lib/server-api";
+import { getOptionalSession } from "@/lib/auth-dal";
+import {
+  getServerChapter,
+  getServerChapters,
+  getServerQuiz,
+} from "@/lib/authenticated-api";
+import { getChapter, getChapters, getQuiz } from "@/lib/server-api";
 
 export const unstable_instant = {
   prefetch: "runtime",
@@ -36,13 +42,13 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  try {
-    const chapter = await getChapter(slug);
-    return { title: `${chapter.title} | Claude Teacher`, description: courseMeta(slug).description };
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return {};
-    throw error;
-  }
+  const chapter = (await getChapters()).find((item) => item.slug === slug);
+  return chapter
+    ? {
+        title: `${chapter.title} | Claude Teacher`,
+        description: courseMeta(slug).description,
+      }
+    : {};
 }
 
 async function ChapterRail({
@@ -61,11 +67,12 @@ async function ChapterRail({
       {(await chapters).map((item) => (
         <Link
           key={item.slug}
-          href={`/course/${item.slug}`}
+          href={item.accessible === false ? "/account" : `/course/${item.slug}`}
           data-active={item.slug === slug}
         >
           <span>{item.order}</span>
           {item.title}
+          {item.accessible === false ? <Lock size={12} /> : null}
         </Link>
       ))}
     </>
@@ -106,7 +113,8 @@ async function ChapterNavigation({
         <span />
       )}
       {next ? (
-        <Link href={`/course/${next.slug}`}>
+        <Link href={next.accessible === false ? "/account" : `/course/${next.slug}`}>
+          {next.accessible === false ? <Lock size={13} /> : null}
           {next.title} <ArrowRight size={14} />
         </Link>
       ) : (
@@ -122,16 +130,18 @@ export default async function ChapterPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const chapterPromise = getChapter(slug);
-  const chapters = getChapters();
-  const quiz = getQuiz(slug);
-  let chapter;
-  try {
-    chapter = await chapterPromise;
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) notFound();
-    throw error;
+  const session = await getOptionalSession();
+  const chapters = session ? getServerChapters() : getChapters();
+  const chapterList = await chapters;
+  const summary = chapterList.find((item) => item.slug === slug);
+  if (!summary) notFound();
+  if (summary.accessible === false) {
+    return <LockedChapter title={summary.title} order={summary.order} />;
   }
+  const chapter = session
+    ? await getServerChapter(slug)
+    : await getChapter(slug);
+  const quiz = session ? getServerQuiz(slug) : getQuiz(slug);
   const toc = extractToc(chapter.content);
   const minutes = readingMinutes(chapter.content);
 
@@ -184,5 +194,25 @@ export default async function ChapterPage({
         </aside>
       </div>
     </>
+  );
+}
+
+function LockedChapter({ title, order }: { title: string; order: number }) {
+  return (
+    <main className="protected-empty">
+      <Lock size={28} />
+      <p className="eyebrow">Chapter {order}</p>
+      <h1>{title}</h1>
+      <p>
+        This chapter and its quiz are included with Premium, along with saved
+        progress and the complete course.
+      </p>
+      <Link href="/account" className="button-primary">
+        View Premium
+      </Link>
+      <Link href="/course" className="button-secondary">
+        Back to course
+      </Link>
+    </main>
   );
 }

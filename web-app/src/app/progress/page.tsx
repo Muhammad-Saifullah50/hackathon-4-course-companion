@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import { Lock } from "lucide-react";
+import Link from "next/link";
 
 import {
   ProgressBreakdown,
@@ -11,8 +13,11 @@ import {
 } from "@/components/loading-ui";
 import type { ChapterSummary, ProgressResponse } from "@/lib/api-types";
 import { verifySession } from "@/lib/auth-dal";
-import { getServerProgress } from "@/lib/authenticated-api";
-import { getChapters } from "@/lib/server-api";
+import {
+  getServerBillingStatus,
+  getServerChapters,
+  getServerProgress,
+} from "@/lib/authenticated-api";
 
 export const unstable_instant = {
   prefetch: "runtime",
@@ -48,10 +53,29 @@ async function Breakdown({
   );
 }
 
-export default function ProgressPage() {
-  const session = verifySession();
-  const chapters = getChapters();
-  const progress = session.then(({ user_id }) => getServerProgress(user_id));
+export default async function ProgressPage() {
+  const [session, billing] = await Promise.all([
+    verifySession(),
+    getServerBillingStatus(),
+  ]);
+  if (billing.tier === "free") {
+    return (
+      <main className="protected-empty">
+        <Lock size={28} />
+        <p className="eyebrow">Premium feature</p>
+        <h1>Save your learning progress</h1>
+        <p>
+          Premium includes chapter completion, quiz scores, and learning
+          streaks across the full course.
+        </p>
+        <Link href="/account" className="button-primary">
+          View Premium
+        </Link>
+      </main>
+    );
+  }
+  const chapters = getServerChapters();
+  const progress = getServerProgress(session.user_id);
 
   return (
     <div className="page-shell">

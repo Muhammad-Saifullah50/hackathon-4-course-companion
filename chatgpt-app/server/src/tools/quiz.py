@@ -7,10 +7,11 @@ from fastmcp.apps import AppConfig
 from ..client import backend
 from ..main import mcp
 from ..auth import (
-    OAUTH_SECURITY,
-    authorize_request,
+    NOAUTH_SECURITY,
     downstream_authentication_failed,
+    optional_authorize_request,
 )
+from ..core.config import settings
 from ..models.quiz import QuizPanel, QuizQuestion, QuizResult, QuestionResult
 from ..tool_metadata import (
     MUTATING_ANNOTATIONS,
@@ -147,7 +148,7 @@ async def _grade_answers(
         resource_uri=QUIZ_RESOURCE_URI,
         visibility=["model", "app"],
     ),
-    meta={"securitySchemes": OAUTH_SECURITY},
+    meta={"securitySchemes": NOAUTH_SECURITY},
     output_schema=output_schema(QuizPanel),
     annotations=READ_ONLY_ANNOTATIONS,
 )
@@ -162,10 +163,18 @@ async def get_quiz(chapter_slug: str) -> ToolResult:
         return _quiz_error(
             "No chapter selected. Use list_chapters to browse available chapters."
         )
-    authorization = await authorize_request(QUIZ_RESOURCE_URI)
-    if isinstance(authorization, ToolResult):
-        return authorization
-    data = await backend.get(f"/quizzes/{chapter_slug}")
+    authorization = await optional_authorize_request()
+    headers = (
+        {"Authorization": f"Bearer {authorization.token}"}
+        if authorization
+        else None
+    )
+    try:
+        data = await backend.get(f"/quizzes/{chapter_slug}", headers=headers)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 403:
+            return _quiz_error("This quiz requires Premium.")
+        raise
     panel = _normalize_quiz_panel(data)
     return ToolResult(
         content=[TextContent(type="text", text=f"Quiz ready: {panel.total_questions} questions.")],
@@ -178,7 +187,7 @@ async def get_quiz(chapter_slug: str) -> ToolResult:
     app=AppConfig(
         visibility=["app"],
     ),
-    meta={"securitySchemes": OAUTH_SECURITY},
+    meta={"securitySchemes": NOAUTH_SECURITY},
     output_schema=output_schema(QuizResult),
     annotations=MUTATING_ANNOTATIONS,
 )
@@ -198,12 +207,22 @@ async def submit_quiz(
             "Missing chapter or answers. Use get_quiz to load a quiz first.",
             include_widget=False,
         )
-    authorization = await authorize_request(context=ctx)
-    if isinstance(authorization, ToolResult):
-        return authorization
-    headers = {"Authorization": f"Bearer {authorization.token}"}
+    authorization = await optional_authorize_request()
+    headers = (
+        {"Authorization": f"Bearer {authorization.token}"}
+        if authorization
+        else {}
+    )
 
-    quiz = await backend.get(f"/quizzes/{chapter_slug}")
+    try:
+        quiz = await backend.get(f"/quizzes/{chapter_slug}", headers=headers)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 403:
+            return _quiz_error(
+                "This quiz requires Premium.",
+                include_widget=False,
+            )
+        raise
     questions = quiz.get("questions", [])
     validation_error = _validate_answers(questions, answers)
     if validation_error:
@@ -216,11 +235,24 @@ async def submit_quiz(
             answers,
             headers,
         )
-        await backend.put(
-            f"/users/{authorization.user_id}/progress"
-            f"?chapter_slug={chapter_slug}",
-            body={"quiz_score": round(result.percentage)},
-            headers=headers,
+        saved = False
+        if authorization:
+            try:
+                await backend.put(
+                    f"/users/{authorization.user_id}/progress"
+                    f"?chapter_slug={chapter_slug}",
+                    body={"quiz_score": round(result.percentage)},
+                    headers=headers,
+                )
+                saved = True
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 403:
+                    raise
+        result = result.model_copy(
+            update={
+                "saved": saved,
+                "upgrade_url": None if saved else settings.upgrade_url or None,
+            }
         )
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 401:

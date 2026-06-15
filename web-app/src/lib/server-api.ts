@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import type {
   ChapterDetail,
   ChapterSummary,
+  PlanCatalogItem,
   QuizPublic,
 } from "@/lib/api-types";
 
@@ -52,4 +53,11 @@ export async function getQuiz(slug: string): Promise<QuizPublic> {
   cacheLife("minutes");
   cacheTag("quizzes", `quiz:${slug}`);
   return publicRequest<QuizPublic>(`/quizzes/${encodeURIComponent(slug)}`);
+}
+
+export async function getPlans(): Promise<PlanCatalogItem[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("billing-plans");
+  return publicRequest<PlanCatalogItem[]>("/billing/plans");
 }

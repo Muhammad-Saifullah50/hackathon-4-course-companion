@@ -5,6 +5,8 @@ interface SearchResult {
   chapter_slug: string;
   chapter_title: string;
   excerpt: string;
+  accessible?: boolean;
+  required_tier?: string | null;
 }
 
 interface SearchResultsProps {
@@ -57,14 +59,22 @@ export function SearchResults({
                   {result.chapter_title}
                 </h2>
                 <div className="mt-2 line-clamp-4 text-zinc-600 dark:text-zinc-300">
-                  <Markdown content={result.excerpt} compact />
+                  {result.accessible === false ? (
+                    <p>Upgrade to Premium to read this chapter.</p>
+                  ) : (
+                    <Markdown content={result.excerpt} compact />
+                  )}
                 </div>
                 <button
                   type="button"
-                  onClick={() => onSelectChapter(result.chapter_slug)}
+                  onClick={() =>
+                    result.accessible !== false &&
+                    onSelectChapter(result.chapter_slug)
+                  }
+                  disabled={result.accessible === false}
                   className="button-secondary mt-3"
                 >
-                  Read chapter
+                  {result.accessible === false ? "Premium chapter" : "Read chapter"}
                   <ArrowRightIcon />
                 </button>
               </li>

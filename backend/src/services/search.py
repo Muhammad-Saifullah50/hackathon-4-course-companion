@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 
 from src.models.search import SearchResponse, SearchResult
+from src.services.access import can_access_chapter
 from src.services.content import ContentService, ServiceUnavailableError
 
 
@@ -10,6 +11,7 @@ class SearchService:
         query: str,
         limit: int,
         content_service: ContentService,
+        tier: str = "free",
     ) -> SearchResponse:
         if not query.strip():
             raise HTTPException(status_code=400, detail="Query must not be blank")
@@ -40,12 +42,15 @@ class SearchService:
                     excerpt = body[max(0, idx - 50): idx + 200]
 
             if rank > 0:
+                accessible = can_access_chapter(tier, entry.order)
                 results.append(
                     SearchResult(
                         slug=entry.slug,
                         title=entry.title,
-                        excerpt=excerpt.strip(),
+                        excerpt=excerpt.strip() if accessible else "",
                         rank=rank,
+                        accessible=accessible,
+                        required_tier=None if accessible else "premium",
                     )
                 )
 

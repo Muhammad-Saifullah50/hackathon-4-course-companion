@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from src.core.auth import get_stytch_client
 from src.core.config import settings
 from src.core.dependencies import get_content_service
-from src.routers import access, auth, content, progress, quizzes, search, users
+from src.routers import access, auth, billing, content, progress, quizzes, search, users
 from src.services.content import ServiceUnavailableError
 
 
@@ -42,6 +42,7 @@ app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(progress.router, prefix="/users", tags=["progress"])
 app.include_router(search.router, tags=["search"])
 app.include_router(access.router, prefix="/access", tags=["access"])
+app.include_router(billing.router, prefix="/billing", tags=["billing"])
 
 
 @app.exception_handler(ServiceUnavailableError)

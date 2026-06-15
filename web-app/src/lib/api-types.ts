@@ -2,6 +2,8 @@ export interface ChapterSummary {
   slug: string;
   title: string;
   order: number;
+  accessible?: boolean;
+  required_tier?: string | null;
 }
 
 export interface ChapterDetail extends ChapterSummary {
@@ -73,11 +75,37 @@ export interface AccessStatus {
   allowed: boolean;
 }
 
+export interface BillingStatus {
+  tier: string;
+  subscription_status: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+}
+
+export interface BillingSession {
+  url: string;
+}
+
+export type AccessTier = "free" | "premium" | "pro" | "team";
+
+export interface PlanCatalogItem {
+  tier: AccessTier;
+  name: string;
+  price_cents: number;
+  currency: "usd";
+  interval: "month" | null;
+  features: string[];
+  available: boolean;
+  seats_included: number | null;
+}
+
 export interface SearchResult {
   slug: string;
   title: string;
   excerpt: string;
   rank: number;
+  accessible?: boolean;
+  required_tier?: string | null;
 }
 
 export interface SearchResponse {

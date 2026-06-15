@@ -7,6 +7,7 @@ import pytest_asyncio
 from botocore.exceptions import ClientError
 from httpx import ASGITransport, AsyncClient
 
+from src.core.config import settings
 from src.main import app
 from src.models.quiz import (
     AnswerOption,
@@ -18,7 +19,8 @@ from src.models.quiz import (
 )
 from src.services.quiz import QuizNotFoundError, QuizService, QuizValidationError
 from src.services.content import ServiceUnavailableError
-from src.core.dependencies import get_quiz_service
+from src.core.dependencies import get_content_service, get_quiz_service
+from src.services.content import ContentService
 
 # ------------------------------------------------------------------ fixtures
 
@@ -60,8 +62,12 @@ async def mock_quiz_service() -> QuizService:
 
 
 @pytest_asyncio.fixture
-async def quiz_client(mock_quiz_service: QuizService) -> AsyncClient:
+async def quiz_client(
+    mock_quiz_service: QuizService,
+    service: ContentService,
+) -> AsyncClient:
     app.dependency_overrides[get_quiz_service] = lambda: mock_quiz_service
+    app.dependency_overrides[get_content_service] = lambda: service
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
@@ -82,6 +88,18 @@ async def test_get_quiz_happy_path(quiz_client: AsyncClient) -> None:
     for q in data["questions"]:
         assert "correct_answer" not in q
         assert "explanation" not in q
+
+
+async def test_get_locked_quiz_requires_upgrade(
+    quiz_client: AsyncClient,
+) -> None:
+    resp = await quiz_client.get("/quizzes/mcp-building-servers")
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == {
+        "code": "upgrade_required",
+        "resource": "quiz:mcp-building-servers",
+        "required_tier": "premium",
+    }
 
 
 async def test_get_quiz_404(mock_quiz_service: QuizService, quiz_client: AsyncClient) -> None:
@@ -213,6 +231,26 @@ async def test_service_get_quiz_public_strips_answers(quiz_service_with_r2: Quiz
     q = result.questions[0]
     assert q.id == "q1"
     assert not hasattr(q, "correct_answer") or "correct_answer" not in q.model_fields_set
+
+
+async def test_service_loads_local_quiz(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    quiz_dir = tmp_path / "quizzes"
+    quiz_dir.mkdir()
+    (quiz_dir / "mcp-introduction.json").write_text(
+        json.dumps(SAMPLE_QUIZ_FILE_DICT),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(settings, "use_local_content", True)
+    monkeypatch.setattr(settings, "local_content_path", tmp_path)
+
+    service = QuizService()
+    quiz = await service.get_quiz_public("mcp-introduction")
+
+    assert quiz.chapter_slug == "mcp-introduction"
+    assert service._s3 is None
 
 
 async def test_service_fetch_quiz_not_found(quiz_service_with_r2: QuizService) -> None:

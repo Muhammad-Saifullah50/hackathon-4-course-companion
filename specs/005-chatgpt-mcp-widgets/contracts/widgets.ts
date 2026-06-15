@@ -24,6 +24,8 @@ export interface ChapterSummary {
   title: string;
   chapter_number: number;
   completed: boolean;
+  accessible: boolean;
+  required_tier: "premium" | null;
 }
 
 export interface ChapterListProps {
@@ -81,6 +83,8 @@ export interface QuizResultProps {
   total: number;
   percentage: number;
   per_question: QuestionResult[];
+  saved: boolean;
+  upgrade_url: string | null;
   /** Called when user clicks "View Progress" — triggers get_progress tool */
   onViewProgress: () => void;
 }
@@ -112,6 +116,8 @@ export interface SearchResult {
   chapter_slug: string;
   chapter_title: string;
   excerpt: string;
+  accessible: boolean;
+  required_tier: "premium" | null;
 }
 
 export interface SearchResultsProps {
@@ -125,7 +131,7 @@ export interface SearchResultsProps {
 
 // ── AccessStatus ─────────────────────────────────────────────────────────────
 
-export type AccessTier = "free" | "premium";
+export type AccessTier = "free" | "premium" | "pro" | "team";
 
 export interface AccessStatusProps {
   user_id: string;

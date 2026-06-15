@@ -49,7 +49,7 @@ async def test_get_quiz_returns_quiz_panel():
     with (
         patch("src.tools.quiz.backend") as mock_backend,
         patch(
-            "src.tools.quiz.authorize_request",
+            "src.tools.quiz.optional_authorize_request",
             new=AsyncMock(return_value=AUTHORIZED),
         ),
     ):
@@ -59,7 +59,10 @@ async def test_get_quiz_returns_quiz_panel():
 
         result = await get_quiz(chapter_slug="intro-to-agents")
 
-        mock_backend.get.assert_called_once_with("/quizzes/intro-to-agents")
+        mock_backend.get.assert_called_once_with(
+            "/quizzes/intro-to-agents",
+            headers={"Authorization": "Bearer test-token-123"},
+        )
 
         # Validate the result is a valid QuizPanel
         panel = QuizPanel(**result.structured_content)
@@ -79,7 +82,7 @@ async def test_get_quiz_propagates_http_error():
     with (
         patch("src.tools.quiz.backend") as mock_backend,
         patch(
-            "src.tools.quiz.authorize_request",
+            "src.tools.quiz.optional_authorize_request",
             new=AsyncMock(return_value=AUTHORIZED),
         ),
     ):
@@ -110,7 +113,7 @@ async def test_submit_quiz_returns_quiz_result():
     with (
         patch("src.tools.quiz.backend") as mock_backend,
         patch(
-            "src.tools.quiz.authorize_request",
+            "src.tools.quiz.optional_authorize_request",
             new=AsyncMock(return_value=AUTHORIZED),
         ),
     ):
@@ -143,7 +146,10 @@ async def test_submit_quiz_returns_quiz_result():
             },
         )
 
-        mock_backend.get.assert_awaited_once_with("/quizzes/intro-to-agents")
+        mock_backend.get.assert_awaited_once_with(
+            "/quizzes/intro-to-agents",
+            headers={"Authorization": "Bearer test-token-123"},
+        )
         assert mock_backend.post.await_args_list == [
             call(
                 "/quizzes/intro-to-agents/submit",
@@ -172,6 +178,7 @@ async def test_submit_quiz_returns_quiz_result():
         assert quiz_result.per_question[0].correct_answer == "An autonomous software system"
         assert quiz_result.per_question[1].correct is False
         assert quiz_result.per_question[1].correct_answer == "Claude Agent SDK"
+        assert quiz_result.saved is True
         assert result.meta == {}
 
 
@@ -194,7 +201,7 @@ async def test_submit_quiz_returns_structured_validation_errors(
     with (
         patch("src.tools.quiz.backend") as mock_backend,
         patch(
-            "src.tools.quiz.authorize_request",
+            "src.tools.quiz.optional_authorize_request",
             new=AsyncMock(return_value=AUTHORIZED),
         ),
     ):
@@ -224,7 +231,7 @@ async def test_submit_quiz_backend_401_returns_configuration_error():
     with (
         patch("src.tools.quiz.backend") as mock_backend,
         patch(
-            "src.tools.quiz.authorize_request",
+            "src.tools.quiz.optional_authorize_request",
             new=AsyncMock(return_value=AUTHORIZED),
         ),
     ):
@@ -268,7 +275,7 @@ async def test_submit_quiz_progress_401_returns_configuration_error():
     with (
         patch("src.tools.quiz.backend") as mock_backend,
         patch(
-            "src.tools.quiz.authorize_request",
+            "src.tools.quiz.optional_authorize_request",
             new=AsyncMock(return_value=AUTHORIZED),
         ),
     ):
@@ -302,3 +309,35 @@ async def test_submit_quiz_progress_401_returns_configuration_error():
     assert result.structured_content["error"]["message"] == (
         "Backend authentication configuration error."
     )
+
+
+@pytest.mark.asyncio
+async def test_submit_quiz_anonymously_does_not_save_progress():
+    """Free anonymous quiz attempts are graded without a progress write."""
+    with (
+        patch("src.tools.quiz.backend") as mock_backend,
+        patch(
+            "src.tools.quiz.optional_authorize_request",
+            new=AsyncMock(return_value=None),
+        ),
+    ):
+        mock_backend.get = AsyncMock(return_value=SAMPLE_QUIZ_DATA)
+        mock_backend.post = AsyncMock(
+            return_value={
+                "question_id": "q1",
+                "is_correct": True,
+                "correct_answer": "B",
+            }
+        )
+        mock_backend.put = AsyncMock()
+
+        from src.tools.quiz import submit_quiz
+
+        result = await submit_quiz(
+            chapter_slug="intro-to-agents",
+            answers=SAMPLE_ANSWERS,
+        )
+
+    quiz_result = QuizResult(**result.structured_content)
+    assert quiz_result.saved is False
+    mock_backend.put.assert_not_awaited()

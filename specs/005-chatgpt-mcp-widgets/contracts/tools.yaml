@@ -33,12 +33,17 @@ components:
     # ── Chapters ─────────────────────────────────────────────────────────────
     ChapterSummary:
       type: object
-      required: [slug, title, chapter_number, completed]
+      required: [slug, title, chapter_number, completed, accessible]
       properties:
         slug: { type: string, example: "intro-to-mcp" }
         title: { type: string, example: "Introduction to MCP" }
         chapter_number: { type: integer, example: 1 }
         completed: { type: boolean, default: false }
+        accessible: { type: boolean, default: true }
+        required_tier:
+          type: string
+          enum: [premium]
+          nullable: true
 
     ChapterPanel:
       type: object
@@ -86,7 +91,7 @@ components:
 
     QuizResult:
       type: object
-      required: [chapter_slug, score, total, percentage, per_question]
+      required: [chapter_slug, score, total, percentage, per_question, saved]
       properties:
         chapter_slug: { type: string }
         score: { type: integer }
@@ -95,6 +100,8 @@ components:
         per_question:
           type: array
           items: { $ref: "#/components/schemas/QuestionResult" }
+        saved: { type: boolean, description: "Whether the score was persisted" }
+        upgrade_url: { type: string, nullable: true }
 
     # ── Progress ─────────────────────────────────────────────────────────────
     ChapterProgressItem:
@@ -122,11 +129,16 @@ components:
     # ── Search ───────────────────────────────────────────────────────────────
     SearchResult:
       type: object
-      required: [chapter_slug, chapter_title, excerpt]
+      required: [chapter_slug, chapter_title, excerpt, accessible]
       properties:
         chapter_slug: { type: string }
         chapter_title: { type: string }
         excerpt: { type: string, description: "Short snippet with keyword in context" }
+        accessible: { type: boolean, default: true }
+        required_tier:
+          type: string
+          enum: [premium]
+          nullable: true
 
     SearchResultsPanel:
       type: object
@@ -147,7 +159,7 @@ components:
         user_id: { type: string }
         tier:
           type: string
-          enum: [free, premium]
+          enum: [free, premium, pro, team]
         is_premium: { type: boolean }
         upgrade_url: { type: string, nullable: true }
 
@@ -176,9 +188,9 @@ tools:
 
   get_chapter:
     description: >
-      Fetch and display the full content of a course chapter by slug.
-      Public — no authentication required.
-    auth: none
+      Fetch and display a chapter available to the current tier. Authentication
+      is optional; anonymous users receive Free access.
+    auth: optional stytchBearer
     backend: "GET /chapters/{slug}"
     input:
       type: object
@@ -191,13 +203,14 @@ tools:
     output:
       $ref: "#/components/schemas/ChapterPanel"
     errors:
+      403: "Premium required"
       404: "Chapter not found"
 
   get_quiz:
     description: >
-      Fetch quiz questions for a chapter. Requires authentication to associate
-      a subsequent score submission with the user account.
-    auth: stytchBearer
+      Fetch quiz questions for a chapter available to the current tier.
+      Authentication is optional for Free quizzes.
+    auth: optional stytchBearer
     backend: "GET /quizzes/{chapter_slug}"
     input:
       type: object
@@ -209,13 +222,14 @@ tools:
     output:
       $ref: "#/components/schemas/QuizPanel"
     errors:
+      403: "Premium required"
       404: "No quiz found for this chapter"
 
   submit_quiz:
     description: >
-      Submit answers for a completed quiz. Records score against the user's
-      account and returns per-question feedback. Requires authentication.
-    auth: stytchBearer
+      Submit answers for a completed quiz. Free attempts are graded without
+      persistence; paid authenticated attempts save progress.
+    auth: optional stytchBearer
     backend: "POST /quizzes/{chapter_slug}/submit"
     input:
       type: object
@@ -250,9 +264,9 @@ tools:
 
   search_content:
     description: >
-      Search course content by keyword. Returns matching chapters with excerpts.
-      Public — no authentication required.
-    auth: none
+      Search course content by keyword. Locked matches omit protected excerpts.
+      Authentication is optional.
+    auth: optional stytchBearer
     backend: "GET /search?q={query}&limit={limit}"
     input:
       type: object
@@ -273,8 +287,7 @@ tools:
 
   check_access:
     description: >
-      Check the authenticated user's account access tier (Free or Premium).
-      Informational in Phase 1 — does not gate any chapter content.
+      Check the authenticated user's account access tier.
       Requires authentication.
     auth: stytchBearer
     backend: "GET /access/check"

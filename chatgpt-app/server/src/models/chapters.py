@@ -5,6 +5,8 @@ class ChapterSummary(BaseModel):
     slug: str
     title: str
     order: int
+    accessible: bool = True
+    required_tier: str | None = None
 
 
 class ChapterListPanel(BaseModel):

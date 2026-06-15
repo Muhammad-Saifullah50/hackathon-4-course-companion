@@ -19,7 +19,7 @@ export function AccessStatus({
     return <ErrorPanel error={error} />;
   }
 
-  const isPremium = tier === "premium";
+  const isPaid = tier !== "free";
 
   return (
     <main className="widget-shell max-w-xl">
@@ -27,34 +27,34 @@ export function AccessStatus({
         <div className="flex items-start gap-4">
           <div
             className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
-              isPremium
+              isPaid
                 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                 : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
             }`}
           >
-            {isPremium ? <SparkIcon /> : <UserIcon />}
+            {isPaid ? <SparkIcon /> : <UserIcon />}
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 id="access-title" className="title">
-                {isPremium ? "Premium access" : "Free access"}
+                {isPaid ? `${tier} access` : "Free access"}
               </h1>
               <span
                 className={`badge ${
-                  isPremium
+                  isPaid
                     ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
                     : "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
                 }`}
               >
-                {isPremium ? "Premium" : "Free"}
+                {isPaid ? tier : "Free"}
               </span>
             </div>
 
             <p className="muted mt-2">
-              {isPremium
-                ? "AI tutoring, hints, and personalized explanations are available."
-                : "Course chapters, quizzes, search, and progress tracking are included."}
+              {isPaid
+                ? "All chapters, quizzes, and progress tracking are active."
+                : "The first three chapters, basic quizzes, and ChatGPT tutoring are included."}
             </p>
 
             {resource && !allowed && (
@@ -63,7 +63,7 @@ export function AccessStatus({
               </p>
             )}
 
-            {!isPremium && upgrade_url && (
+            {!isPaid && upgrade_url && (
               <a
                 className="button-primary mt-4"
                 href={upgrade_url}
@@ -75,7 +75,7 @@ export function AccessStatus({
               </a>
             )}
 
-            {isPremium && (
+            {isPaid && (
               <div className="mt-4 flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-300">
                 <CheckIcon />
                 Your premium benefits are active

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Search, X } from "lucide-react";
+import { ArrowRight, Lock, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -59,7 +59,7 @@ export function SearchScreen({ chapters }: { chapters: ChapterSummary[] }) {
             <p className="eyebrow mb-3 mt-8">Suggested topics</p>
             <div className="flex flex-wrap gap-2">{suggestions.map((item) => <button className="search-pill" onClick={() => setQuery(item)} key={item}>{item}</button>)}</div>
             <p className="eyebrow mb-3 mt-10">Browse chapters</p>
-            <div className="grid gap-2">{chapters.map((chapter) => <Link className="search-result" href={`/course/${chapter.slug}`} key={chapter.slug}><span>{chapter.order}</span><strong>{chapter.title}</strong><ArrowRight size={14} /></Link>)}</div>
+            <div className="grid gap-2">{chapters.map((chapter) => <Link className="search-result" href={chapter.accessible === false ? "/account" : `/course/${chapter.slug}`} key={chapter.slug}><span>{chapter.order}</span><strong>{chapter.title}</strong>{chapter.accessible === false ? <Lock size={14} /> : <ArrowRight size={14} />}</Link>)}</div>
           </>
         )}
         {loading && !searched && (
@@ -86,7 +86,7 @@ export function SearchScreen({ chapters }: { chapters: ChapterSummary[] }) {
                   <div className="flex-1"><Skeleton className="h-4 w-1/2" /><Skeleton className="mt-2 h-3 w-full" /></div>
                 </div>
               ))
-            ) : results.length ? results.map((result) => <Link className="search-result items-start" href={`/course/${result.slug}`} key={result.slug}><Search size={15} /><span><strong>{result.title}</strong><small>{result.excerpt}</small></span><ArrowRight size={14} /></Link>) : <div className="surface-card p-10 text-center muted">No matching course content. Try another phrase.</div>}
+            ) : results.length ? results.map((result) => <Link className="search-result items-start" href={result.accessible === false ? "/account" : `/course/${result.slug}`} key={result.slug}>{result.accessible === false ? <Lock size={15} /> : <Search size={15} />}<span><strong>{result.title}</strong><small>{result.accessible === false ? "Premium chapter" : result.excerpt}</small></span>{result.accessible === false ? <Lock size={14} /> : <ArrowRight size={14} />}</Link>) : <div className="surface-card p-10 text-center muted">No matching course content. Try another phrase.</div>}
           </div>
         )}
       </div>

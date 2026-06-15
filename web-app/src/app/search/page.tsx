@@ -4,7 +4,7 @@ import { SearchScreen } from "@/components/search-screen";
 import { SearchSkeleton } from "@/components/loading-ui";
 import type { ChapterSummary } from "@/lib/api-types";
 import { verifySession } from "@/lib/auth-dal";
-import { getChapters } from "@/lib/server-api";
+import { getServerChapters } from "@/lib/authenticated-api";
 
 export const unstable_instant = {
   prefetch: "runtime",
@@ -28,7 +28,7 @@ async function SearchContent({
 
 export default function SearchPage() {
   const authentication = verifySession();
-  const chapters = getChapters();
+  const chapters = getServerChapters();
 
   return (
     <Suspense fallback={<SearchSkeleton />}>

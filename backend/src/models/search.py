@@ -6,6 +6,8 @@ class SearchResult(BaseModel):
     title: str
     excerpt: str
     rank: int
+    accessible: bool = True
+    required_tier: str | None = None
 
 
 class SearchResponse(BaseModel):

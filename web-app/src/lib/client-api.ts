@@ -4,10 +4,6 @@ import type {
   GradedResult,
 } from "@/lib/api-types";
 
-const backendUrl =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ??
-  "http://localhost:8000";
-
 export class ClientApiError extends Error {
   constructor(
     public readonly status: number,
@@ -23,11 +19,12 @@ export async function submitAnswer(
   selectedAnswer: string,
 ): Promise<GradedResult> {
   const response = await fetch(
-    `${backendUrl}/quizzes/${encodeURIComponent(slug)}/submit`,
+    "/api/quiz",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        chapter_slug: slug,
         question_id: questionId,
         selected_answer: selectedAnswer,
       }),

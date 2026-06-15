@@ -168,6 +168,22 @@ def get_current_user(
             raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
+def get_optional_current_user(
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Security(_bearer),
+    ] = None,
+    session_token: Annotated[
+        str | None,
+        Header(alias="X-Stytch-Session"),
+    ] = None,
+) -> AuthenticatedUser | None:
+    """Resolve an authenticated caller when credentials are present."""
+    if credentials is None and not session_token:
+        return None
+    return get_current_user(credentials=credentials, session_token=session_token)
+
+
 def revoke_session(session_token: str) -> None:
     """Revoke an opaque Stytch session token."""
     try:

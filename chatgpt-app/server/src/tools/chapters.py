@@ -6,7 +6,8 @@ from fastmcp.apps import AppConfig
 from ..main import mcp
 from ..client import backend
 from ..models.chapters import ChapterListPanel, ChapterPanel, ChapterSummary
-from ..auth import NOAUTH_SECURITY
+from ..auth import NOAUTH_SECURITY, optional_authorize_request
+from ..core.config import settings
 from ..tool_metadata import READ_ONLY_ANNOTATIONS, output_schema
 
 
@@ -21,7 +22,13 @@ from ..tool_metadata import READ_ONLY_ANNOTATIONS, output_schema
 )
 async def list_chapters() -> ToolResult:
     """List all available course chapters."""
-    data = await backend.get("/chapters")
+    authorization = await optional_authorize_request()
+    headers = (
+        {"Authorization": f"Bearer {authorization.token}"}
+        if authorization
+        else None
+    )
+    data = await backend.get("/chapters", headers=headers)
     chapters = [ChapterSummary(**ch) for ch in data]
     return ToolResult(
         content=[TextContent(type="text", text=f"Found {len(chapters)} chapters.")],
@@ -53,10 +60,30 @@ async def get_chapter(slug: str) -> ToolResult:
             meta={"ui": {"resourceUri": "ui://widget/chapter-reader.html"}, "openai/outputTemplate": "ui://widget/chapter-reader.html"},
         )
     try:
-        data = await backend.get(f"/chapters/{slug}")
+        authorization = await optional_authorize_request()
+        headers = (
+            {"Authorization": f"Bearer {authorization.token}"}
+            if authorization
+            else None
+        )
+        data = await backend.get(f"/chapters/{slug}", headers=headers)
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
             raise ValueError(f"Chapter '{slug}' not found")
+        if e.response.status_code == 403:
+            message = "This chapter requires Premium."
+            return ToolResult(
+                content=[TextContent(type="text", text=message)],
+                structured_content={
+                    "error": {
+                        "message": message,
+                        "code": "upgrade_required",
+                        "upgrade_url": settings.upgrade_url or None,
+                    }
+                },
+                meta={"ui": {"resourceUri": "ui://widget/chapter-reader.html"}, "openai/outputTemplate": "ui://widget/chapter-reader.html"},
+                is_error=True,
+            )
         raise
     panel = ChapterPanel(**data)
     return ToolResult(

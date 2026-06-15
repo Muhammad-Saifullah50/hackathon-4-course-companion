@@ -19,11 +19,13 @@ export function QuizRunner({
   title,
   order,
   authentication,
+  progressEligible = true,
 }: {
   quiz: QuizPublic;
   title: string;
   order: number;
   authentication: Promise<boolean>;
+  progressEligible?: boolean;
 }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [current, setCurrent] = useState(0);
@@ -114,6 +116,7 @@ export function QuizRunner({
           <QuizSaveControl
             authentication={authentication}
             chapterSlug={quiz.chapter_slug}
+            progressEligible={progressEligible}
             score={score}
           />
         </Suspense>
@@ -191,10 +194,12 @@ function QuizAuthHint({
 function QuizSaveControl({
   authentication,
   chapterSlug,
+  progressEligible,
   score,
 }: {
   authentication: Promise<boolean>;
   chapterSlug: string;
+  progressEligible: boolean;
   score: number;
 }) {
   const authenticated = use(authentication);
@@ -209,6 +214,14 @@ function QuizSaveControl({
         href={`/login?return_to=${encodeURIComponent(`/quiz/${chapterSlug}`)}`}
       >
         <LogIn size={14} /> Sign in to save
+      </Link>
+    );
+  }
+
+  if (!progressEligible) {
+    return (
+      <Link className="button-primary w-full" href="/account">
+        Upgrade to save progress
       </Link>
     );
   }

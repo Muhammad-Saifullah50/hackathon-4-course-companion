@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
@@ -29,5 +30,11 @@ def _get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with open_db_session() as session:
+        yield session
+
+
+@asynccontextmanager
+async def open_db_session() -> AsyncGenerator[AsyncSession, None]:
     async with _get_session_factory()() as session:
         yield session

@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.engine import get_db
 from src.main import app
+from src.services.progress import ProgressService
+from src.services.users import UserService
 
 USER_ID = "user-test-progress-001"
 EMAIL = "student@example.com"
@@ -71,6 +73,16 @@ def override_db(mock_db: AsyncMock) -> AsyncGenerator[None, None]:
     app.dependency_overrides.pop(get_db, None)
 
 
+@pytest.fixture(autouse=True)
+def premium_user() -> AsyncGenerator[None, None]:
+    with patch.object(
+        UserService,
+        "get_or_create",
+        new=AsyncMock(return_value=_make_db_user(access_tier="premium")),
+    ):
+        yield
+
+
 def _make_completion_response(
     user_id: str = USER_ID,
     chapter_slug: str = CHAPTER_SLUG,
@@ -89,10 +101,33 @@ def _make_completion_response(
 
 
 class TestPutUserProgress:
+    async def test_free_user_cannot_save_progress(
+        self, mock_stytch: MagicMock
+    ) -> None:
+        with (
+            patch("src.core.auth.get_stytch_client", return_value=mock_stytch),
+            patch.object(
+                UserService,
+                "get_or_create",
+                new=AsyncMock(return_value=_make_db_user(access_tier="free")),
+            ),
+            patch.object(ProgressService, "record_completion", new=AsyncMock()),
+        ):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                response = await client.put(
+                    f"/users/{USER_ID}/progress",
+                    headers=_auth_header(),
+                    params={"chapter_slug": CHAPTER_SLUG},
+                    json={"quiz_score": 85},
+                )
+
+        assert response.status_code == 403
+        assert response.json()["detail"]["code"] == "upgrade_required"
+
     async def test_valid_completion_returns_200_with_streak(self, mock_stytch: MagicMock, mock_db: AsyncMock) -> None:
         completion = _make_completion_response()
-
-        from src.services.progress import ProgressService
 
         with (
             patch("src.core.auth.get_stytch_client", return_value=mock_stytch),
@@ -114,8 +149,6 @@ class TestPutUserProgress:
 
     async def test_same_chapter_re_completion_is_idempotent(self, mock_stytch: MagicMock, mock_db: AsyncMock) -> None:
         completion = _make_completion_response()
-
-        from src.services.progress import ProgressService
 
         with (
             patch("src.core.auth.get_stytch_client", return_value=mock_stytch),

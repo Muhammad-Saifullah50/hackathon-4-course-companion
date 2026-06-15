@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.engine import get_db
 from src.main import app
+from src.services.users import UserService
 
 USER_ID = "user-test-search-001"
 EMAIL = "student@example.com"
@@ -50,6 +51,18 @@ def override_db(mock_db: AsyncMock) -> AsyncGenerator[None, None]:
     app.dependency_overrides[get_db] = _get_db_override
     yield
     app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.fixture(autouse=True)
+def free_user() -> AsyncGenerator[None, None]:
+    user = MagicMock()
+    user.access_tier = "free"
+    with patch.object(
+        UserService,
+        "get_or_create",
+        new=AsyncMock(return_value=user),
+    ):
+        yield
 
 
 class TestGetSearch:
@@ -118,11 +131,22 @@ class TestGetSearch:
 
         assert response.status_code == 400
 
-    async def test_missing_jwt_returns_401(self, mock_db: AsyncMock) -> None:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/search", params={"q": "anything"})
+    async def test_missing_jwt_uses_free_search(self, mock_db: AsyncMock) -> None:
+        from src.models.search import SearchResponse
+        from src.services.search import SearchService
 
-        assert response.status_code in (401, 403)
+        with patch.object(
+            SearchService,
+            "search",
+            new=AsyncMock(return_value=SearchResponse(results=[], total=0)),
+        ) as search:
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                response = await client.get("/search", params={"q": "anything"})
+
+        assert response.status_code == 200
+        assert search.await_args.kwargs["tier"] == "free"
 
     async def test_cold_cache_returns_503(self, mock_stytch: MagicMock, mock_db: AsyncMock) -> None:
         from src.services.content import ServiceUnavailableError

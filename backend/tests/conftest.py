@@ -5,6 +5,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
+from src.core.config import settings
 from src.main import app
 from src.models.content import Manifest, ManifestEntry
 from src.services.content import ContentService
@@ -20,6 +21,12 @@ SAMPLE_MANIFEST = Manifest(
 )
 
 SAMPLE_CHAPTER_BODY = "# Test Chapter\n\n## Introduction\nTest content.\n"
+
+
+@pytest.fixture(autouse=True)
+def use_r2_content_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep mocked-R2 tests independent from the developer environment."""
+    monkeypatch.setattr(settings, "use_local_content", False)
 
 
 @pytest.fixture

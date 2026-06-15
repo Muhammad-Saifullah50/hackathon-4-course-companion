@@ -30,6 +30,8 @@ interface QuizResultProps {
   total: number;
   percentage: number;
   per_question: QuestionResult[];
+  saved?: boolean;
+  upgrade_url?: string | null;
   onViewProgress: () => void;
 }
 
@@ -233,6 +235,8 @@ export function QuizResult({
   total,
   percentage,
   per_question,
+  saved = false,
+  upgrade_url,
   onViewProgress,
 }: QuizResultProps) {
   const passed = percentage >= 70;
@@ -293,13 +297,28 @@ export function QuizResult({
             ))}
           </ul>
 
-          <button
-            type="button"
-            className="button-primary mt-5 w-full"
-            onClick={onViewProgress}
-          >
-            View progress
-          </button>
+          {saved ? (
+            <button
+              type="button"
+              className="button-primary mt-5 w-full"
+              onClick={onViewProgress}
+            >
+              View progress
+            </button>
+          ) : upgrade_url ? (
+            <a
+              className="button-primary mt-5 w-full"
+              href={upgrade_url}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Upgrade to save progress
+            </a>
+          ) : (
+            <p className="muted mt-5 text-center">
+              Upgrade to Premium to save this score.
+            </p>
+          )}
         </div>
       </section>
     </main>

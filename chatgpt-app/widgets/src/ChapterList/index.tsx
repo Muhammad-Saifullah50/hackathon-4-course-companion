@@ -5,6 +5,8 @@ interface ChapterListProps {
     slug: string;
     title: string;
     order: number;
+    accessible?: boolean;
+    required_tier?: string | null;
   }[];
   onSelectChapter: (slug: string) => void;
   error?: { message: string };
@@ -42,7 +44,11 @@ export function ChapterList({
               <li key={chapter.slug}>
                 <button
                   type="button"
-                  onClick={() => onSelectChapter(chapter.slug)}
+                  onClick={() =>
+                    chapter.accessible !== false &&
+                    onSelectChapter(chapter.slug)
+                  }
+                  disabled={chapter.accessible === false}
                   className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-zinc-50 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-zinc-800 sm:px-5 dark:hover:bg-zinc-800/70 dark:focus-visible:outline-zinc-200"
                 >
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-sm font-semibold text-zinc-600 group-hover:bg-white dark:bg-zinc-800 dark:text-zinc-300 dark:group-hover:bg-zinc-700">
@@ -53,10 +59,16 @@ export function ChapterList({
                       {chapter.title}
                     </span>
                     <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
-                      Open chapter
+                      {chapter.accessible === false
+                        ? "Premium chapter"
+                        : "Open chapter"}
                     </span>
                   </span>
-                  <ChevronRightIcon />
+                  {chapter.accessible === false ? (
+                    <LockIcon />
+                  ) : (
+                    <ChevronRightIcon />
+                  )}
                 </button>
               </li>
             ))}
@@ -64,6 +76,15 @@ export function ChapterList({
         )}
       </section>
     </main>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg aria-hidden="true" className="size-4 text-zinc-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <rect x="5" y="8" width="10" height="8" rx="2" />
+      <path d="M7.5 8V6a2.5 2.5 0 0 1 5 0v2" />
+    </svg>
   );
 }
 

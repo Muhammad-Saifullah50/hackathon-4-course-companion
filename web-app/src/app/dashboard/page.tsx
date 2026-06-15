@@ -14,12 +14,14 @@ import {
   Skeleton,
 } from "@/components/loading-ui";
 import type {
+  BillingStatus,
   ChapterSummary,
   ProgressResponse,
   UserProfile,
 } from "@/lib/api-types";
 import { verifySession } from "@/lib/auth-dal";
 import {
+  getServerBillingStatus,
   getServerProfile,
   getServerProgress,
 } from "@/lib/authenticated-api";
@@ -47,7 +49,7 @@ async function ProgressSummary({
   progress,
 }: {
   chapters: Promise<ChapterSummary[]>;
-  progress: Promise<ProgressResponse>;
+  progress: Promise<ProgressResponse | null>;
 }) {
   return (
     <DashboardProgressSummary
@@ -62,7 +64,7 @@ async function LearningPath({
   progress,
 }: {
   chapters: Promise<ChapterSummary[]>;
-  progress: Promise<ProgressResponse>;
+  progress: Promise<ProgressResponse | null>;
 }) {
   return (
     <DashboardLearning
@@ -77,7 +79,7 @@ async function Stats({
   progress,
 }: {
   chapters: Promise<ChapterSummary[]>;
-  progress: Promise<ProgressResponse>;
+  progress: Promise<ProgressResponse | null>;
 }) {
   return (
     <DashboardStats chapters={await chapters} progress={await progress} />
@@ -88,7 +90,10 @@ export default function DashboardPage() {
   const session = verifySession();
   const chapters = getChapters();
   const profile = getServerProfile();
-  const progress = session.then(({ user_id }) => getServerProgress(user_id));
+  const billing: Promise<BillingStatus> = getServerBillingStatus();
+  const progress = Promise.all([session, billing]).then(([value, plan]) =>
+    plan.tier === "free" ? null : getServerProgress(value.user_id),
+  );
 
   return (
     <div className="page-shell">

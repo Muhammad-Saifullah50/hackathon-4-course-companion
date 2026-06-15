@@ -1,10 +1,12 @@
 import json
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 from botocore.exceptions import ClientError
 from httpx import AsyncClient
 
+from src.core.config import settings
 from src.models.content import Manifest
 from src.services.content import (
     ChapterNotFoundError,
@@ -35,7 +37,12 @@ async def test_list_chapters_fields(client: AsyncClient) -> None:
     assert "slug" in chapter
     assert "title" in chapter
     assert "order" in chapter
+    assert chapter["accessible"] is True
+    assert chapter["required_tier"] is None
     assert chapter["slug"] == "claude-agent-sdk-foundations"
+    locked = resp.json()[3]
+    assert locked["accessible"] is False
+    assert locked["required_tier"] == "premium"
 
 
 async def test_list_chapters_503_when_manifest_unavailable(service: ContentService) -> None:
@@ -78,10 +85,14 @@ async def test_get_chapter_first_has_no_prev(client: AsyncClient) -> None:
     assert resp.json()["prev_slug"] is None
 
 
-async def test_get_chapter_last_has_no_next(client: AsyncClient) -> None:
+async def test_get_locked_chapter_requires_upgrade(client: AsyncClient) -> None:
     resp = await client.get("/chapters/agent-skills")
-    assert resp.status_code == 200
-    assert resp.json()["next_slug"] is None
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == {
+        "code": "upgrade_required",
+        "resource": "chapter:agent-skills",
+        "required_tier": "premium",
+    }
 
 
 async def test_get_chapter_middle_has_both_nav(client: AsyncClient) -> None:
@@ -215,6 +226,31 @@ async def test_content_service_manifest_cache(service: ContentService) -> None:
 async def test_content_service_chapter_body(service: ContentService) -> None:
     body = await service.get_chapter_body("mcp-introduction")
     assert "Test Chapter" in body
+
+
+async def test_content_service_loads_local_content(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    manifest = SAMPLE_MANIFEST.model_dump_json()
+    chapter_dir = tmp_path / "chapters"
+    chapter_dir.mkdir()
+    (tmp_path / "manifest.json").write_text(manifest, encoding="utf-8")
+    (chapter_dir / "mcp-introduction.md").write_text(
+        SAMPLE_CHAPTER_BODY,
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(settings, "use_local_content", True)
+    monkeypatch.setattr(settings, "local_content_path", tmp_path)
+
+    service = ContentService()
+
+    loaded = await service.load_manifest()
+    body = await service.get_chapter_body("mcp-introduction")
+
+    assert len(loaded.chapters) == 5
+    assert body == SAMPLE_CHAPTER_BODY
+    assert service._s3 is None
 
 
 async def test_content_service_duplicate_slug_dedup(service: ContentService) -> None:
