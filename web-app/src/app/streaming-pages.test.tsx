@@ -109,7 +109,6 @@ describe("streamed pages", () => {
     const pendingProgress = deferred<ProgressResponse>();
 
     mocks.verifySession.mockReturnValue(Promise.resolve(session));
-    mocks.getChapters.mockReturnValue(Promise.resolve(chapters));
     mocks.getServerProfile.mockReturnValue(pendingProfile.promise);
     mocks.getServerProgress.mockReturnValue(pendingProgress.promise);
 
@@ -128,7 +127,6 @@ describe("streamed pages", () => {
 
   it("renders the Free dashboard without requesting premium progress", async () => {
     mocks.verifySession.mockReturnValue(Promise.resolve(session));
-    mocks.getChapters.mockReturnValue(Promise.resolve(chapters));
     mocks.getServerProfile.mockReturnValue(Promise.resolve(profile));
     mocks.getServerBillingStatus.mockResolvedValue({
       tier: "free",
@@ -143,8 +141,34 @@ describe("streamed pages", () => {
     const html = await streamed.finish();
 
     expect(html).toContain("Premium progress");
-    expect(html).toContain("View Premium");
+    expect(html).toContain("Upgrade Now");
     expect(mocks.getServerProgress).not.toHaveBeenCalled();
+  });
+
+  it("uses authenticated chapter access on the Premium dashboard", async () => {
+    const premiumChapters: ChapterSummary[] = [
+      {
+        slug: "advanced",
+        title: "Advanced Agents",
+        order: 4,
+        accessible: true,
+      },
+    ];
+
+    mocks.verifySession.mockReturnValue(Promise.resolve(session));
+    mocks.getServerChapters.mockResolvedValue(premiumChapters);
+    mocks.getServerProfile.mockResolvedValue(profile);
+    mocks.getServerProgress.mockResolvedValue(progress);
+
+    const streamed = await readStream(
+      await renderToReadableStream(DashboardPage()),
+    );
+    const html = await streamed.finish();
+
+    expect(html).toContain('href="/course/advanced"');
+    expect(html).not.toContain('href="/account"');
+    expect(mocks.getServerChapters).toHaveBeenCalledOnce();
+    expect(mocks.getChapters).not.toHaveBeenCalled();
   });
 
   it("streams the course shell while entitlement resolution is pending", async () => {

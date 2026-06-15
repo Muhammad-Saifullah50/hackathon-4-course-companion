@@ -41,7 +41,7 @@ All database reads and writes go through a service/repository layer. No direct d
 | Database | Neon (PostgreSQL) | User progress, streaks, access tiers |
 | ChatGPT frontend | OpenAI Apps SDK (MCP) | Phase 1 & 2 |
 | Web frontend | Next.js / React | Phase 3 only |
-| LLM for hybrid features | Nvidia Nemotron (via openrouter) | Phase 2 only, never Phase 1 |
+| LLM for hybrid features | Nvidia Nemotron (via openrouter) for primary Phase 2 reasoning; separately approved lightweight OpenRouter models may be used for auxiliary utility agents such as thread titling | Phase 2 only, never Phase 1 |
 
 No LLM SDK (`anthropic`, `openai`, `langchain`, etc.) may be imported in any Phase 1 backend module. If the import exists, the code fails the Phase 1 audit.
 
@@ -84,6 +84,7 @@ Detection: Code review + API traffic audit. Violation = immediate disqualificati
 
 ### Phase 2 (Gated)
 Hybrid features must be on routes prefixed `/premium/` and guarded by a `require_premium` dependency. The Phase 1 deterministic routes remain untouched.
+Primary mentor and assessment reasoning must use Nvidia Nemotron via OpenRouter unless a feature-specific ADR explicitly grants an auxiliary utility-agent exception, such as chat title generation, to a lighter OpenRouter model.
 
 ---
 

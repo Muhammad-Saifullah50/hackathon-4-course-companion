@@ -22,10 +22,10 @@ import type {
 import { verifySession } from "@/lib/auth-dal";
 import {
   getServerBillingStatus,
+  getServerChapters,
   getServerProfile,
   getServerProgress,
 } from "@/lib/authenticated-api";
-import { getChapters } from "@/lib/server-api";
 
 export const unstable_instant = {
   prefetch: "runtime",
@@ -88,7 +88,7 @@ async function Stats({
 
 export default function DashboardPage() {
   const session = verifySession();
-  const chapters = getChapters();
+  const chapters = getServerChapters();
   const profile = getServerProfile();
   const billing: Promise<BillingStatus> = getServerBillingStatus();
   const progress = Promise.all([session, billing]).then(([value, plan]) =>
