@@ -5,11 +5,21 @@
 **Status**: Draft  
 **Input**: User description: "Build the AI Course Mentor first for the web app, then later for the ChatGPT app. The mentor must be strictly course-grounded, Pro-only, support manual thread renaming, persist threads and messages, accept text messages only, enforce a 5-message-per-day limit, and reject unrelated questions."
 
+## Clarifications
+
+### Session 2026-06-16
+
+- Q: Which submitted messages count against the 5-message-per-day mentor limit? → A: Count every valid Pro learner text message submitted to the mentor, including messages that are later blocked by guardrails or answered with limited evidence; exclude non-text and non-Pro attempts.
+- Q: When does the daily mentor message limit reset? → A: Reset at 00:00 UTC for all learners.
+- Q: What citation detail is required for mentor course references? → A: Cite the lesson/chapter title plus section heading when available.
+- Q: How much thread history may the mentor use as response context? → A: Use the most recent 20 messages as response context, while retaining full history for display.
+- Q: How long are mentor threads retained? → A: Retain mentor threads until learner account deletion; no thread deletion in this release.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Grounded Course Help (Priority: P1)
 
-A Pro learner opens the mentor in the web app and asks a question about the course. The mentor answers only with course-grounded help, cites the relevant lesson when possible, and clearly says when the course does not contain enough evidence.
+A Pro learner opens the mentor chat bubble in the web app and asks a question about the course. The mentor answers only with course-grounded help, cites the relevant lesson when possible, and clearly says when the course does not contain enough evidence.
 
 **Why this priority**: This is the core value of the feature. Without grounded answers, the mentor is just a generic chat box.
 
@@ -18,7 +28,7 @@ A Pro learner opens the mentor in the web app and asks a question about the cour
 **Acceptance Scenarios**:
 
 1. **Given** a Pro learner asks a supported course question, **When** the mentor responds, **Then** the answer uses course evidence and includes the relevant lesson reference.
-2. **Given** a Pro learner asks an unrelated question, **When** the mentor responds, **Then** it politely refuses to answer and explains that it only handles course topics.
+2. **Given** a Pro learner asks an unrelated question, **When** the mentor workflow runs, **Then** an Agents SDK guardrail stops the turn and returns a clear course-scope message.
 3. **Given** a Pro learner asks a course question with weak or missing evidence, **When** the mentor responds, **Then** it states that the course does not provide enough support and points the learner to the closest relevant lesson.
 
 ---
@@ -45,7 +55,7 @@ A Pro learner uses the mentor throughout the day. The product allows up to five 
 
 **Why this priority**: The limit protects the premium experience from runaway usage while still giving enough room for meaningful study.
 
-**Independent Test**: Send five learner messages in one day and confirm the sixth request is refused with a clear limit message.
+**Independent Test**: Send five learner messages in one day and confirm the sixth request is blocked with a clear limit message.
 
 **Acceptance Scenarios**:
 
@@ -71,7 +81,7 @@ Only Pro learners can use the mentor, and the mentor accepts text messages only.
 
 ### Edge Cases
 
-- What happens when the learner asks a question outside the course scope?
+- What happens when the learner asks a question outside the course scope and the guardrail trips?
 - What happens when the mentor cannot find enough supporting course evidence?
 - What happens when the learner hits the daily message limit mid-conversation?
 - What happens when the learner opens a thread that has no prior messages?
@@ -84,7 +94,7 @@ Only Pro learners can use the mentor, and the mentor accepts text messages only.
 
 - Pro-only mentor access in the web app
 - Course-grounded answers with lesson references when applicable
-- Clear refusal of unrelated questions
+- Agents SDK guardrail handling for unrelated questions
 - Follow-up questions that preserve thread context
 - Manual thread renaming by the learner
 - Persistent conversation history across sessions
@@ -108,27 +118,28 @@ Only Pro learners can use the mentor, and the mentor accepts text messages only.
 
 - **FR-001**: The system MUST allow Pro learners to start a mentor conversation in the web app.
 - **FR-002**: The system MUST block non-Pro users from starting a mentor conversation.
-- **FR-003**: The system MUST keep each mentor thread’s messages available for later viewing by the same learner.
+- **FR-003**: The system MUST keep each mentor thread’s full message history available for later viewing by the same learner until learner account deletion.
 - **FR-004**: The system MUST allow a learner to manually rename a mentor thread.
 - **FR-005**: The system MUST preserve a thread’s renamed title across later visits.
-- **FR-006**: The system MUST answer only course-related questions and MUST refuse unrelated requests.
+- **FR-006**: The system MUST answer only course-related questions and MUST use Agents SDK guardrails to block unrelated requests.
 - **FR-007**: The system MUST use course evidence as the basis for answers and MUST identify when evidence is insufficient.
-- **FR-008**: The system MUST provide a citation or course reference when it makes a course-specific claim.
-- **FR-009**: The system MUST limit each learner to five mentor messages per day.
-- **FR-010**: The system MUST clearly tell the learner when the daily message limit has been reached.
+- **FR-008**: The system MUST cite the lesson or chapter title plus section heading when available for each course-specific answer.
+- **FR-009**: The system MUST limit each learner to five valid Pro learner text messages submitted to the mentor per day, including guardrail-blocked and limited-evidence turns, and MUST exclude non-text and non-Pro attempts from the count.
+- **FR-010**: The system MUST clearly tell the learner when the daily message limit has been reached and that usage resumes at 00:00 UTC.
 - **FR-011**: The system MUST accept text messages only.
 - **FR-012**: The system MUST reject non-text inputs with a clear explanation.
 - **FR-013**: The system MUST keep mentor conversations isolated so one learner cannot view another learner’s threads or messages.
 - **FR-014**: The system MUST avoid changing course progress, quiz scores, or access tier as a side effect of a mentor conversation.
 - **FR-015**: The system MUST provide a concrete next learning action when the conversation naturally supports one.
+- **FR-016**: The system MUST use no more than the most recent 20 messages from the current thread as conversation context when generating a mentor response.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Mentor Thread**: A learner-owned conversation with a stable title and a visible message history.
+- **Mentor Thread**: A learner-owned conversation with a stable title and a visible message history retained until learner account deletion.
 - **Mentor Message**: A single learner or mentor turn within a thread.
-- **Course Reference**: A cited course lesson or section used to support an answer.
+- **Course Reference**: A cited course lesson or chapter title, plus section heading when available, used to support an answer.
 - **Learner Usage Record**: The daily message count used to enforce the usage limit.
-- **Learner Context**: The learner’s current thread history and relevant course progress used to keep responses coherent.
+- **Learner Context**: The learner’s most recent 20 messages from the current thread and relevant course progress used to keep responses coherent.
 
 ## Success Criteria *(mandatory)*
 
@@ -138,13 +149,13 @@ Only Pro learners can use the mentor, and the mentor accepts text messages only.
 - **SC-002**: At least 90% of supported course questions receive answers that include a relevant course reference or a clear statement that the course evidence is insufficient.
 - **SC-003**: A learner can return to a previous mentor thread and continue the conversation without losing prior context.
 - **SC-004**: A learner can rename a thread and see the new name persist on the next visit.
-- **SC-005**: 100% of unrelated questions are refused with a clear scope explanation.
+- **SC-005**: 100% of unrelated questions are stopped by guardrails with a clear scope explanation.
 - **SC-006**: The daily message limit is enforced consistently after the fifth learner message in a day.
 
 ## Assumptions
 
 - The mentor is delivered in the web app first and the ChatGPT app version is future work.
 - Only Pro users can access the mentor in this release.
-- The daily message limit resets on a calendar day basis.
+- The daily message limit resets at 00:00 UTC for all learners.
 - Course content is the only authority for answers; the mentor does not use open-web knowledge.
-- Thread deletion, export, and assessment-result integration are not part of this release.
+- Thread deletion by the learner, export, and assessment-result integration are not part of this release.

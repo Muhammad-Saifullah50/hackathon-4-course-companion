@@ -205,3 +205,10 @@ The project constitution defines the code quality, testing, performance, securit
 Before any Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.
  
 <!-- END:nextjs-agent-rules -->
+
+## Active Technologies
+- Python 3.12+ backend; TypeScript 5.7 with Next.js 16.2.9 and React 19 web frontend + FastAPI, Pydantic v2, SQLAlchemy 2.0 async, asyncpg, boto3/R2 content service, Stytch JWT auth, OpenRouter HTTP API using Nvidia Nemotron, Next.js App Router, Tailwind CSS, lucide-react (007-ai-course-mentor)
+- Neon PostgreSQL for mentor threads, mentor messages, and daily usage counters; Cloudflare R2 for authoritative course content (007-ai-course-mentor)
+
+## Recent Changes
+- 007-ai-course-mentor: Added Python 3.12+ backend; TypeScript 5.7 with Next.js 16.2.9 and React 19 web frontend + FastAPI, Pydantic v2, SQLAlchemy 2.0 async, asyncpg, boto3/R2 content service, Stytch JWT auth, OpenRouter HTTP API using Nvidia Nemotron, Next.js App Router, Tailwind CSS, lucide-react

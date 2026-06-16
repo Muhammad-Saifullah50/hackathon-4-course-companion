@@ -38,12 +38,15 @@ All database reads and writes go through a service/repository layer. No direct d
 | API framework | FastAPI | Auto-generates OpenAPI docs |
 | Data validation | Pydantic v2 | All request/response models |
 | Content storage | Cloudflare R2 | **Required** — no substitutes |
-| Database | Neon (PostgreSQL) | User progress, streaks, access tiers |
+| Database | Neon (PostgreSQL + pgvector) | User progress, streaks, access tiers, vector indexes for premium RAG |
 | ChatGPT frontend | OpenAI Apps SDK (MCP) | Phase 1 & 2 |
 | Web frontend | Next.js / React | Phase 3 only |
-| LLM for hybrid features | Nvidia Nemotron (via openrouter) for primary Phase 2 reasoning; separately approved lightweight OpenRouter models may be used for auxiliary utility agents such as thread titling | Phase 2 only, never Phase 1 |
+| Agent runtime | OpenAI Agents SDK with guardrails and function tools | Phase 2 premium routes only |
+| Model adapter | LiteLLM targeting OpenRouter-hosted Nvidia Nemotron models configured by environment | Phase 2 premium routes only |
+| Chat UI | OpenAI ChatKit Python server + `@openai/chatkit-react` | Web app premium mentor surface |
+| LLM for hybrid features | Nvidia Nemotron via OpenRouter through LiteLLM for primary Phase 2 reasoning; model slug is environment-configured | Phase 2 only, never Phase 1 |
 
-No LLM SDK (`anthropic`, `openai`, `langchain`, etc.) may be imported in any Phase 1 backend module. If the import exists, the code fails the Phase 1 audit.
+No LLM, agent, or orchestration SDK (`anthropic`, `openai`, `openai-agents`, `openai-chatkit`, `langchain`, `litellm`, etc.) may be imported in any Phase 1 backend module. If the import exists in a Phase 1 backend module, the code fails the Phase 1 audit. Phase 2 premium modules may import `openai-agents`, `openai-chatkit`, and `litellm` when isolated under `/premium/...` behavior.
 
 ---
 
@@ -75,7 +78,7 @@ No LLM SDK (`anthropic`, `openai`, `langchain`, etc.) may be imported in any Pha
 
 ### Phase 1 (STRICT — Disqualifier)
 The following are **absolutely forbidden** in the backend during Phase 1:
-- Any import of LLM libraries (`anthropic`, `openai`, `langchain`, `litellm`, etc.)
+- Any import of LLM, agent, or chat UI server libraries (`anthropic`, `openai`, `openai-agents`, `openai-chatkit`, `langchain`, `litellm`, etc.)
 - Any HTTP call to an LLM API endpoint
 - Any summarization, RAG, prompt orchestration, or agent loop logic
 - Any content generation at request time (pre-generate only)
@@ -84,7 +87,7 @@ Detection: Code review + API traffic audit. Violation = immediate disqualificati
 
 ### Phase 2 (Gated)
 Hybrid features must be on routes prefixed `/premium/` and guarded by a `require_premium` dependency. The Phase 1 deterministic routes remain untouched.
-Primary mentor and assessment reasoning must use Nvidia Nemotron via OpenRouter unless a feature-specific ADR explicitly grants an auxiliary utility-agent exception, such as chat title generation, to a lighter OpenRouter model.
+Primary mentor and assessment reasoning must use OpenAI Agents SDK with LiteLLM configured for Nvidia Nemotron via OpenRouter unless a feature-specific ADR explicitly grants an auxiliary utility-agent exception. Course-grounded mentor answers use a RAG pipeline: R2 is the authoritative content source, content is chunked and embedded into Neon pgvector, and premium agents retrieve cited chunks through function tools. Safety and course-scope enforcement belong in Agents SDK guardrails rather than ad hoc response-status routing.
 
 ---
 

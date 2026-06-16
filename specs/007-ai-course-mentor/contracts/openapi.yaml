@@ -1,0 +1,401 @@
+openapi: 3.0.3
+info:
+  title: AI Course Mentor API
+  version: 0.1.0
+  description: Pro-only course-grounded mentor endpoints for the web app.
+servers:
+  - url: https://api.claudeteacher.example
+    description: Production backend
+  - url: http://localhost:8000
+    description: Local backend
+security:
+  - bearerAuth: []
+paths:
+  /premium/mentor/threads:
+    get:
+      summary: List mentor threads for the current learner
+      operationId: listMentorThreads
+      tags: [Mentor]
+      responses:
+        "200":
+          description: Learner-owned thread summaries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MentorThreadSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ProRequired"
+    post:
+      summary: Create a mentor thread
+      operationId: createMentorThread
+      tags: [Mentor]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMentorThreadRequest"
+      responses:
+        "201":
+          description: Created thread.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorThreadSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ProRequired"
+  /premium/mentor/threads/{thread_id}:
+    get:
+      summary: Get one mentor thread and its full display history
+      operationId: getMentorThread
+      tags: [Mentor]
+      parameters:
+        - $ref: "#/components/parameters/ThreadId"
+      responses:
+        "200":
+          description: Thread detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorThreadDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ProRequired"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      summary: Rename a mentor thread
+      operationId: renameMentorThread
+      tags: [Mentor]
+      parameters:
+        - $ref: "#/components/parameters/ThreadId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RenameMentorThreadRequest"
+      responses:
+        "200":
+          description: Updated thread.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorThreadSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ProRequired"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /premium/mentor/messages:
+    post:
+      summary: Submit a text-only mentor message
+      operationId: sendMentorMessage
+      tags: [Mentor]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMentorMessageRequest"
+      responses:
+        "200":
+          description: Persisted learner message, mentor response, and quota status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendMentorMessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ProRequired"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "415":
+          description: Non-text input rejected.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Daily mentor message limit reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuotaExceededResponse"
+  /premium/mentor/chatkit:
+    post:
+      summary: Process ChatKit thread events for the mentor chat UI
+      operationId: processMentorChatKit
+      tags: [Mentor]
+      description: >
+        ChatKit Python endpoint used by the web app's @openai/chatkit-react
+        bubble and pop-up window. The backend authenticates the learner,
+        requires Pro access, persists thread/message state, runs the Agents SDK
+        mentor agent, and streams ChatKit events when applicable.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: ChatKit JSON response or text/event-stream when streaming.
+          content:
+            application/json:
+              schema:
+                type: object
+            text/event-stream:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ProRequired"
+        "429":
+          description: Daily mentor message limit reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuotaExceededResponse"
+  /premium/mentor/usage:
+    get:
+      summary: Get current UTC daily mentor usage
+      operationId: getMentorUsage
+      tags: [Mentor]
+      responses:
+        "200":
+          description: Daily quota status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorUsageStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ProRequired"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    ThreadId:
+      name: thread_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    BadRequest:
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Missing or invalid authentication.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ProRequired:
+      description: Pro access required.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Thread not found for the current learner.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    CreateMentorThreadRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+    RenameMentorThreadRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+    SendMentorMessageRequest:
+      type: object
+      additionalProperties: false
+      required: [content]
+      properties:
+        thread_id:
+          type: string
+          format: uuid
+          nullable: true
+        content:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    MentorThreadSummary:
+      type: object
+      required: [id, title, created_at, updated_at, message_count]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        message_count:
+          type: integer
+          minimum: 0
+    MentorCitation:
+      type: object
+      required: [chapter_slug, lesson_title]
+      properties:
+        chunk_id:
+          type: string
+          format: uuid
+          nullable: true
+        chapter_slug:
+          type: string
+        lesson_title:
+          type: string
+        section_heading:
+          type: string
+          nullable: true
+        excerpt:
+          type: string
+          nullable: true
+        relevance_score:
+          type: number
+          format: float
+          nullable: true
+    MentorMessage:
+      type: object
+      required: [id, thread_id, role, content, citations, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        thread_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [learner, mentor]
+        content:
+          type: string
+        status:
+          type: string
+          enum: [completed, guardrail_blocked, error]
+          nullable: true
+        guardrail_code:
+          type: string
+          nullable: true
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/MentorCitation"
+        created_at:
+          type: string
+          format: date-time
+    MentorUsageStatus:
+      type: object
+      required: [limit, used, remaining, reset_at]
+      properties:
+        limit:
+          type: integer
+          enum: [5]
+        used:
+          type: integer
+          minimum: 0
+          maximum: 5
+        remaining:
+          type: integer
+          minimum: 0
+          maximum: 5
+        reset_at:
+          type: string
+          format: date-time
+    MentorThreadDetail:
+      type: object
+      required: [thread, messages, usage]
+      properties:
+        thread:
+          $ref: "#/components/schemas/MentorThreadSummary"
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/MentorMessage"
+        usage:
+          $ref: "#/components/schemas/MentorUsageStatus"
+    SendMentorMessageResponse:
+      type: object
+      required: [thread, learner_message, mentor_message, usage]
+      properties:
+        thread:
+          $ref: "#/components/schemas/MentorThreadSummary"
+        learner_message:
+          $ref: "#/components/schemas/MentorMessage"
+        mentor_message:
+          $ref: "#/components/schemas/MentorMessage"
+        usage:
+          $ref: "#/components/schemas/MentorUsageStatus"
+    ErrorResponse:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          oneOf:
+            - type: string
+            - type: object
+    QuotaExceededResponse:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: object
+          required: [code, limit, used, reset_at]
+          properties:
+            code:
+              type: string
+              enum: [mentor_daily_limit_reached]
+            limit:
+              type: integer
+              enum: [5]
+            used:
+              type: integer
+              enum: [5]
+            reset_at:
+              type: string
+              format: date-time
